@@ -88,6 +88,22 @@
           "end": "2027-03-31"
         },
         "completedDates": []
+      },
+      {
+        "id": "kw9c6gvpvk9l",
+        "groupId": "npmzq3n0vk9l",
+        "start": "19:30",
+        "end": "20:30",
+        "name": "SRM - OOAD",
+        "category": "Class",
+        "priority": "medium",
+        "notes": "",
+        "flexible": false,
+        "dateRange": {
+          "start": "2026-08-27",
+          "end": "2026-11-12"
+        },
+        "completedDates": []
       }
     ],
     "fri": [
@@ -104,6 +120,22 @@
         "dateRange": {
           "start": "2026-08-19",
           "end": "2027-03-31"
+        },
+        "completedDates": []
+      },
+      {
+        "id": "9yvj875udheh",
+        "groupId": "j2wkrudtdheh",
+        "start": "19:30",
+        "end": "20:30",
+        "name": "SRM - LLM GenAI",
+        "category": "Class",
+        "priority": "medium",
+        "notes": "",
+        "flexible": false,
+        "dateRange": {
+          "start": "2026-08-28",
+          "end": "2026-11-13"
         },
         "completedDates": []
       }
