@@ -347,13 +347,45 @@ function readinessScore(state){
 
 /* ============================= storage ============================= */
 const STORAGE_KEY="do-or-die-state-v1";
+
+/* Storage backend detection:
+   - Inside Claude's artifact viewer, window.storage exists and is used (syncs to your account).
+   - Opened as a plain file / hosted anywhere else, window.storage does NOT exist, so we fall
+     back to the browser's own localStorage — this is what makes the app work (and actually
+     save) once you download it and use it outside Claude. */
+const hasClaudeStorage = typeof window.storage !== "undefined" && window.storage !== null;
+
 async function loadState(){
-  try{ const res=await window.storage.get(STORAGE_KEY,false); if(res && res.value) return JSON.parse(res.value); }
-  catch(e){ /* not found */ }
-  return null;
+  if(hasClaudeStorage){
+    try{ const res=await window.storage.get(STORAGE_KEY,false); if(res && res.value) return JSON.parse(res.value); }
+    catch(e){ /* not found */ }
+    return null;
+  }
+  try{
+    const raw = localStorage.getItem(STORAGE_KEY);
+    return raw ? JSON.parse(raw) : null;
+  }catch(e){ return null; }
 }
 async function saveState(state){
-  try{ await window.storage.set(STORAGE_KEY, JSON.stringify(state), false); } catch(e){ /* ignore */ }
+  if(hasClaudeStorage){
+    try{ await window.storage.set(STORAGE_KEY, JSON.stringify(state), false); } catch(e){ /* ignore */ }
+    return;
+  }
+  try{ localStorage.setItem(STORAGE_KEY, JSON.stringify(state)); } catch(e){ /* storage full / blocked */ }
+}
+
+/* Ask the browser not to silently wipe this site's storage under disk pressure.
+   This is the closest the web platform gets to "undeletable" — it does NOT stop
+   you from clearing site data yourself in browser settings, but it does stop the
+   browser from doing that automatically. Only relevant for the localStorage path. */
+async function requestPersistentStorage(){
+  if(hasClaudeStorage) return;
+  try{
+    if(navigator.storage && navigator.storage.persist){
+      const already = navigator.storage.persisted ? await navigator.storage.persisted() : false;
+      if(!already) await navigator.storage.persist();
+    }
+  }catch(e){ /* not supported in this browser, ignore */ }
 }
 
 /* ============================= icons ============================= */
@@ -870,7 +902,7 @@ function renderSettings(){
   <div class="view-title" style="margin-bottom:14px;">Settings</div>
   <div class="card" style="margin-bottom:12px;">
     <div style="font-weight:700;font-size:14px;margin-bottom:4px;">Data &amp; Persistence</div>
-    <div style="font-size:12.5px;color:${C.textSec};margin-bottom:12px;">Every task, streak and completion is saved automatically and stays after you refresh.</div>
+    <div style="font-size:12.5px;color:${C.textSec};margin-bottom:12px;">Every task, streak and completion is saved automatically and stays after you refresh — ${hasClaudeStorage ? "synced through your Claude account." : "stored locally in this browser (this device, this browser only)."} The browser has been asked to keep this data persistent so it isn't cleared automatically when disk space is tight. It can still be removed manually (clearing site data / browsing data for this page), so export a backup now and then if you want a safety net.</div>
     <div style="display:flex;gap:8px;flex-wrap:wrap;">
       <button class="btn-ghost" data-action="exportData">${ic('download',14)} Export Data (JSON)</button>
       <button class="btn-ghost" data-action="resetData" style="color:${C.deepRed};border-color:#F3C6C6;">${ic('rotateCcw',14)} Reset to Default Template</button>
@@ -1309,6 +1341,7 @@ function renderModals(){
 /* ============================= boot ============================= */
 (async function boot(){
   document.getElementById("root").innerHTML = `<div style="display:flex;align-items:center;justify-content:center;height:300px;color:${C.textSec};font-family:Inter,sans-serif;">Loading mission control...</div>`;
+  await requestPersistentStorage();
   const loaded = await loadState();
   state = loaded || seedState();
   attachGlobalListeners();
