@@ -16,6 +16,22 @@
           "end": "2027-03-31"
         },
         "completedDates": []
+      },
+      {
+        "id": "tiwlyfuf1emg",
+        "groupId": "vvy7i1df1emg",
+        "start": "20:00",
+        "end": "21:00",
+        "name": "SRM  - CA III",
+        "category": "Class",
+        "priority": "medium",
+        "notes": "",
+        "flexible": false,
+        "dateRange": {
+          "start": "2026-08-30",
+          "end": "2026-11-15"
+        },
+        "completedDates": []
       }
     ],
     "mon": [
