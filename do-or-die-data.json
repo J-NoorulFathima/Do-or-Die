@@ -156,6 +156,22 @@
           "end": "2027-03-31"
         },
         "completedDates": []
+      },
+      {
+        "id": "ignj2h88v4ed",
+        "groupId": "2pttvvpqv4ed",
+        "start": "18:00",
+        "end": "19:00",
+        "name": "AT GenAI",
+        "category": "Class",
+        "priority": "medium",
+        "notes": "",
+        "flexible": false,
+        "dateRange": {
+          "start": "2026-08-22",
+          "end": "2026-11-14"
+        },
+        "completedDates": []
       }
     ]
   },
