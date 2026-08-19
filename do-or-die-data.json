@@ -66,6 +66,22 @@
           "end": "2026-09-30"
         },
         "completedDates": []
+      },
+      {
+        "id": "vcjhdezsq1a1",
+        "groupId": "j25lml5aq1a1",
+        "start": "18:00",
+        "end": "21:00",
+        "name": "SRM - ASSESSMENTS (week : 10 - 15)",
+        "category": "Assessment",
+        "priority": "high",
+        "notes": "",
+        "flexible": false,
+        "dateRange": {
+          "start": "2026-10-01",
+          "end": "2026-10-30"
+        },
+        "completedDates": []
       }
     ],
     "tue": [
@@ -100,6 +116,22 @@
           "end": "2026-09-30"
         },
         "completedDates": []
+      },
+      {
+        "id": "ki9v3n18q1a2",
+        "groupId": "j25lml5aq1a1",
+        "start": "18:00",
+        "end": "21:00",
+        "name": "SRM - ASSESSMENTS (week : 10 - 15)",
+        "category": "Assessment",
+        "priority": "high",
+        "notes": "",
+        "flexible": false,
+        "dateRange": {
+          "start": "2026-10-01",
+          "end": "2026-10-30"
+        },
+        "completedDates": []
       }
     ],
     "wed": [
@@ -132,6 +164,22 @@
         "dateRange": {
           "start": "2026-08-24",
           "end": "2026-09-30"
+        },
+        "completedDates": []
+      },
+      {
+        "id": "ydvsw818q1a2",
+        "groupId": "j25lml5aq1a1",
+        "start": "18:00",
+        "end": "21:00",
+        "name": "SRM - ASSESSMENTS (week : 10 - 15)",
+        "category": "Assessment",
+        "priority": "high",
+        "notes": "",
+        "flexible": false,
+        "dateRange": {
+          "start": "2026-10-01",
+          "end": "2026-10-30"
         },
         "completedDates": []
       }
