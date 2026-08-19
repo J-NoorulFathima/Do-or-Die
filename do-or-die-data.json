@@ -1,12 +1,131 @@
 {
   "days": {
-    "sun": [],
-    "mon": [],
-    "tue": [],
-    "wed": [],
-    "thu": [],
-    "fri": [],
-    "sat": []
+    "sun": [
+      {
+        "id": "29yul3vku14r",
+        "groupId": "5h9gw6cqu14r",
+        "start": "04:00",
+        "end": "05:00",
+        "name": "Wake UP",
+        "category": "Personal",
+        "priority": "medium",
+        "notes": "",
+        "flexible": false,
+        "dateRange": {
+          "start": "2026-08-19",
+          "end": "2027-03-31"
+        },
+        "completedDates": []
+      }
+    ],
+    "mon": [
+      {
+        "id": "5vcfodcou14r",
+        "groupId": "5h9gw6cqu14r",
+        "start": "04:00",
+        "end": "05:00",
+        "name": "Wake UP",
+        "category": "Personal",
+        "priority": "medium",
+        "notes": "",
+        "flexible": false,
+        "dateRange": {
+          "start": "2026-08-19",
+          "end": "2027-03-31"
+        },
+        "completedDates": []
+      }
+    ],
+    "tue": [
+      {
+        "id": "yka0ftigu14r",
+        "groupId": "5h9gw6cqu14r",
+        "start": "04:00",
+        "end": "05:00",
+        "name": "Wake UP",
+        "category": "Personal",
+        "priority": "medium",
+        "notes": "",
+        "flexible": false,
+        "dateRange": {
+          "start": "2026-08-19",
+          "end": "2027-03-31"
+        },
+        "completedDates": []
+      }
+    ],
+    "wed": [
+      {
+        "id": "264akg03u14r",
+        "groupId": "5h9gw6cqu14r",
+        "start": "04:00",
+        "end": "05:00",
+        "name": "Wake UP",
+        "category": "Personal",
+        "priority": "medium",
+        "notes": "",
+        "flexible": false,
+        "dateRange": {
+          "start": "2026-08-19",
+          "end": "2027-03-31"
+        },
+        "completedDates": []
+      }
+    ],
+    "thu": [
+      {
+        "id": "e1qmy08eu14r",
+        "groupId": "5h9gw6cqu14r",
+        "start": "04:00",
+        "end": "05:00",
+        "name": "Wake UP",
+        "category": "Personal",
+        "priority": "medium",
+        "notes": "",
+        "flexible": false,
+        "dateRange": {
+          "start": "2026-08-19",
+          "end": "2027-03-31"
+        },
+        "completedDates": []
+      }
+    ],
+    "fri": [
+      {
+        "id": "5l0szxjau14r",
+        "groupId": "5h9gw6cqu14r",
+        "start": "04:00",
+        "end": "05:00",
+        "name": "Wake UP",
+        "category": "Personal",
+        "priority": "medium",
+        "notes": "",
+        "flexible": false,
+        "dateRange": {
+          "start": "2026-08-19",
+          "end": "2027-03-31"
+        },
+        "completedDates": []
+      }
+    ],
+    "sat": [
+      {
+        "id": "91skzy2fu14r",
+        "groupId": "5h9gw6cqu14r",
+        "start": "04:00",
+        "end": "05:00",
+        "name": "Wake UP",
+        "category": "Personal",
+        "priority": "medium",
+        "notes": "",
+        "flexible": false,
+        "dateRange": {
+          "start": "2026-08-19",
+          "end": "2027-03-31"
+        },
+        "completedDates": []
+      }
+    ]
   },
   "bestStreak": 0,
   "warRoom": {
