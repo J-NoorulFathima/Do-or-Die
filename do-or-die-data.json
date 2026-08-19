@@ -414,6 +414,38 @@
         "completedDates": []
       },
       {
+        "id": "4i5c2hpsclyl",
+        "groupId": "a8kvnd6vclyl",
+        "start": "19:00",
+        "end": "20:00",
+        "name": "SRM - ASSESSMENTS (week : 1 - 10)",
+        "category": "Assessment",
+        "priority": "high",
+        "notes": "",
+        "flexible": false,
+        "dateRange": {
+          "start": "2026-08-24",
+          "end": "2026-09-30"
+        },
+        "completedDates": []
+      },
+      {
+        "id": "2q5uwwfoe5b8",
+        "groupId": "ex4q9x08e5b8",
+        "start": "19:00",
+        "end": "20:00",
+        "name": "SRM - ASSESSMENTS (week : 10 - 15)",
+        "category": "Assessment",
+        "priority": "high",
+        "notes": "",
+        "flexible": false,
+        "dateRange": {
+          "start": "2026-10-01",
+          "end": "2026-10-30"
+        },
+        "completedDates": []
+      },
+      {
         "id": "uh086jdrxsgw",
         "groupId": "zuorh9pzxsgw",
         "start": "20:00",
