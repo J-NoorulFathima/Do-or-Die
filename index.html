@@ -14,7 +14,7 @@
   }
   *{box-sizing:border-box;}
   html,body{margin:0;padding:0;background:var(--offWhite);color:var(--text);font-family:'Inter',sans-serif;}
-  input[type=time]::-webkit-calendar-picker-indicator{filter:invert(0.3) sepia(1) saturate(4) hue-rotate(-20deg);}
+  input[type=time]::-webkit-calendar-picker-indicator,input[type=date]::-webkit-calendar-picker-indicator{filter:invert(0.3) sepia(1) saturate(4) hue-rotate(-20deg);}
   ::-webkit-scrollbar{height:6px;width:6px;}
   ::-webkit-scrollbar-thumb{background:var(--peach);border-radius:4px;}
   button{font-family:inherit;}
@@ -87,7 +87,7 @@
   .pill{display:inline-flex;align-items:center;gap:4px;padding:2px 9px;border-radius:999px;font-size:11px;font-weight:600;letter-spacing:0.3px;background:var(--softPeach);color:var(--darkRed);border:1px solid var(--peach);white-space:nowrap;}
   .pill.muted{background:var(--lightPeach);color:var(--textSec);border:1px solid var(--border);}
 
-  .icon-btn{display:inline-flex;align-items:center;justify-content:center;width:30px;height:30px;border-radius:8px;border:1px solid var(--border);background:var(--white);color:var(--textSec);cursor:pointer;}
+  .icon-btn{display:inline-flex;align-items:center;justify-content:center;width:30px;height:30px;border-radius:8px;border:1px solid var(--border);background:var(--white);color:var(--textSec);cursor:pointer;flex-shrink:0;}
   .icon-btn.danger{color:var(--deepRed);}
   .icon-btn:hover{background:var(--lightPeach);}
   .icon-btn.danger:hover{background:#FDEDEC;}
@@ -126,13 +126,13 @@
   .tabs button{border:none;border-radius:8px;padding:7px 12px;font-size:12.5px;font-weight:700;cursor:pointer;background:transparent;color:var(--textSec);text-transform:capitalize;}
   .tabs button.on{background:var(--deepRed);color:var(--white);}
 
-  .day-strip{display:flex;gap:6px;overflow-x:auto;margin-bottom:14px;padding-bottom:4px;}
-  .day-strip button{flex-shrink:0;padding:9px 14px;border-radius:10px;cursor:pointer;border:1px solid var(--border);background:var(--white);color:var(--text);font-weight:700;font-size:12.5px;}
+  .day-strip{display:flex;gap:6px;overflow-x:auto;padding-bottom:4px;}
+  .day-strip button{flex-shrink:0;padding:9px 12px;border-radius:10px;cursor:pointer;border:1px solid var(--border);background:var(--white);color:var(--text);font-weight:700;font-size:12px;white-space:nowrap;}
   .day-strip button.on{border-color:var(--deepRed);background:var(--deepRed);color:var(--white);}
 
   .week-grid{display:grid;grid-template-columns:repeat(7,minmax(150px,1fr));gap:10px;overflow-x:auto;}
   .week-col{background:var(--white);border:1px solid var(--border);border-radius:12px;padding:10px;min-width:150px;}
-  .week-col-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;}
+  .week-col-head{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:8px;}
   .week-task{display:block;width:100%;text-align:left;background:var(--lightPeach);border:none;border-radius:6px;padding:5px 7px;margin-bottom:5px;cursor:pointer;}
   .week-task .t{font-size:10px;color:var(--textSec);font-family:'JetBrains Mono',monospace;}
   .week-task .n{font-size:11.5px;font-weight:600;color:var(--text);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
@@ -147,7 +147,7 @@
   .legend-sw{width:10px;height:10px;border-radius:3px;display:inline-block;}
 
   .roadmap-card{border-radius:14px;padding:16px;}
-  .roadmap-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;}
+  .roadmap-head{display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:10px;gap:8px;}
   .roadmap-cols{display:flex;gap:20px;margin-bottom:12px;flex-wrap:wrap;}
   .roadmap-lab{font-size:10.5px;opacity:.75;font-weight:700;text-transform:uppercase;}
   .roadmap-val{font-size:14px;font-weight:700;}
@@ -209,6 +209,7 @@ const C = {
 const DAYS = ["sun","mon","tue","wed","thu","fri","sat"];
 const DAY_LABEL = {sun:"Sunday",mon:"Monday",tue:"Tuesday",wed:"Wednesday",thu:"Thursday",fri:"Friday",sat:"Saturday"};
 const DAY_SHORT = {sun:"Sun",mon:"Mon",tue:"Tue",wed:"Wed",thu:"Thu",fri:"Fri",sat:"Sat"};
+const MONTH_NAMES = ["January","February","March","April","May","June","July","August","September","October","November","December"];
 
 const CATEGORIES = ["SDE Placement","DSA","System Design","Java","SQL","Linux","AWS","DevOps","React","Generative AI","Aptitude","Project","Internship","Assessment","Class","Work","Personal","Other"];
 
@@ -219,17 +220,6 @@ const PRIORITIES = [
   {key:"low",label:"Low",emoji:"\u26AA",color:C.border},
 ];
 const PRIORITY_MAP = Object.fromEntries(PRIORITIES.map(p=>[p.key,p]));
-
-const ROADMAP = [
-  {month:"August",year:2026,monthIndex:7,weekday:"DSA Foundations",weekend:"Core Java + SQL"},
-  {month:"September",year:2026,monthIndex:8,weekday:"\u2014",weekend:"Spring Boot"},
-  {month:"October",year:2026,monthIndex:9,weekday:"Linux",weekend:"Spring Boot"},
-  {month:"November",year:2026,monthIndex:10,weekday:"AWS",weekend:"Aptitude"},
-  {month:"December",year:2026,monthIndex:11,weekday:"DevOps",weekend:"Aptitude"},
-  {month:"January",year:2027,monthIndex:0,weekday:"React",weekend:"Generative AI"},
-  {month:"February",year:2027,monthIndex:1,weekday:"System Design",weekend:"Mock Interviews"},
-  {month:"March",year:2027,monthIndex:2,weekday:"Interview Prep",weekend:"Placement Drives"},
-];
 
 const MOTIVATION = [
   "NO ZERO DAYS.",
@@ -253,6 +243,7 @@ function fmtHours(h){ return `${h}h`; }
 function uid(){ return Math.random().toString(36).slice(2,10)+Date.now().toString(36).slice(-4); }
 function inRange(dateStr,range){ if(!range) return true; return dateStr>=range.start && dateStr<=range.end; }
 function fmtDateShort(iso){ const d=new Date(iso+"T00:00:00"); return d.toLocaleDateString("en-US",{month:"short",day:"numeric"}); }
+function fmtDateLong(iso){ const d=new Date(iso+"T00:00:00"); return d.toLocaleDateString("en-US",{weekday:"long",year:"numeric",month:"long",day:"numeric"}); }
 function monthBounds(year,monthIndex){ const first=new Date(year,monthIndex,1); const last=new Date(year,monthIndex+1,0); return {start:toISO(first),end:toISO(last)}; }
 function esc(s){ return String(s==null?"":s).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c])); }
 
@@ -280,10 +271,23 @@ function defaultTasksForDay(){
     priority:b.priority, notes:"", flexible:!!b.flexible, dateRange:null, completedDates:[],
   })).sort((a,b)=>parseMin(a.start)-parseMin(b.start));
 }
+function defaultRoadmapData(){
+  const items = [
+    {month:"August",year:2026,monthIndex:7,weekday:"DSA Foundations",weekend:"Core Java + SQL"},
+    {month:"September",year:2026,monthIndex:8,weekday:"\u2014",weekend:"Spring Boot"},
+    {month:"October",year:2026,monthIndex:9,weekday:"Linux",weekend:"Spring Boot"},
+    {month:"November",year:2026,monthIndex:10,weekday:"AWS",weekend:"Aptitude"},
+    {month:"December",year:2026,monthIndex:11,weekday:"DevOps",weekend:"Aptitude"},
+    {month:"January",year:2027,monthIndex:0,weekday:"React",weekend:"Generative AI"},
+    {month:"February",year:2027,monthIndex:1,weekday:"System Design",weekend:"Mock Interviews"},
+    {month:"March",year:2027,monthIndex:2,weekday:"Interview Prep",weekend:"Placement Drives"},
+  ];
+  return items.map(it=>({id:uid(), ...it, progress:0}));
+}
 function seedState(){
   const days={};
   DAYS.forEach(k=>{ days[k]=defaultTasksForDay(); });
-  return { days, bestStreak:0, warRoom:{dsaProblems:0,mockInterviews:0,resumeApplications:0,interviewCalls:0}, roadmapProgress:{} };
+  return { days, bestStreak:0, warRoom:{dsaProblems:0,mockInterviews:0,resumeApplications:0,interviewCalls:0}, roadmap:defaultRoadmapData() };
 }
 
 /* ============================= stats ============================= */
@@ -347,12 +351,6 @@ function readinessScore(state){
 
 /* ============================= storage ============================= */
 const STORAGE_KEY="do-or-die-state-v1";
-
-/* Storage backend detection:
-   - Inside Claude's artifact viewer, window.storage exists and is used (syncs to your account).
-   - Opened as a plain file / hosted anywhere else, window.storage does NOT exist, so we fall
-     back to the browser's own localStorage — this is what makes the app work (and actually
-     save) once you download it and use it outside Claude. */
 const hasClaudeStorage = typeof window.storage !== "undefined" && window.storage !== null;
 
 async function loadState(){
@@ -373,11 +371,6 @@ async function saveState(state){
   }
   try{ localStorage.setItem(STORAGE_KEY, JSON.stringify(state)); } catch(e){ /* storage full / blocked */ }
 }
-
-/* Ask the browser not to silently wipe this site's storage under disk pressure.
-   This is the closest the web platform gets to "undeletable" — it does NOT stop
-   you from clearing site data yourself in browser settings, but it does stop the
-   browser from doing that automatically. Only relevant for the localStorage path. */
 async function requestPersistentStorage(){
   if(hasClaudeStorage) return;
   try{
@@ -388,12 +381,27 @@ async function requestPersistentStorage(){
   }catch(e){ /* not supported in this browser, ignore */ }
 }
 
+/* ============================= migration ============================= */
+function migrateState(loaded){
+  const state = loaded || seedState();
+  if(!state.days) state.days = seedState().days;
+  DAYS.forEach(k=>{ if(!Array.isArray(state.days[k])) state.days[k]=[]; });
+  if(!state.warRoom) state.warRoom={dsaProblems:0,mockInterviews:0,resumeApplications:0,interviewCalls:0};
+  if(typeof state.bestStreak!=="number") state.bestStreak=0;
+  if(!Array.isArray(state.roadmap)){
+    const fresh = defaultRoadmapData();
+    if(state.roadmapProgress){
+      fresh.forEach(r=>{ if(state.roadmapProgress[r.month]!=null) r.progress=state.roadmapProgress[r.month]; });
+    }
+    state.roadmap = fresh;
+  }
+  delete state.roadmapProgress;
+  return state;
+}
+
 /* ============================= GitHub sync ============================= */
 const GH_CONFIG_KEY = "do-or-die-github-config-v1";
 
-/* GitHub config (token, owner, repo, path, branch) is always stored the same
-   way local device settings are — never inside `state`, so the token is never
-   included in the JSON that actually gets pushed up to the repo. */
 async function loadGithubConfig(){
   if(hasClaudeStorage){
     try{ const res=await window.storage.get(GH_CONFIG_KEY,false); if(res && res.value) return JSON.parse(res.value); }
@@ -490,7 +498,7 @@ async function pullFromGithub(){
     const existing=await githubFetchFile(cfg);
     if(!existing.exists){ setGithubStatus("error","No file there yet — push first to create it."); return; }
     const parsed=JSON.parse(existing.content);
-    state=parsed;
+    state=migrateState(parsed);
     cfg.sha=existing.sha;
     cfg.lastSyncedAt=Date.now();
     await saveState(state);
@@ -534,6 +542,7 @@ const ICON_PATHS = {
   download:'<path d="M12 3v12"/><path d="M7 10l5 5 5-5"/><path d="M5 21h14"/>',
   moreH:'<circle cx="5" cy="12" r="1.6"/><circle cx="12" cy="12" r="1.6"/><circle cx="19" cy="12" r="1.6"/>',
   trophy:'<path d="M8 21h8M12 17v4"/><path d="M7 4h10v4a5 5 0 0 1-10 0Z"/><path d="M5 4h2v3a3 3 0 0 1-3-3Z"/><path d="M19 4h-2v3a3 3 0 0 0 3-3Z"/>',
+  calendar:'<rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/>',
 };
 function ic(name,size=16,color="currentColor"){
   const p=ICON_PATHS[name]||ICON_PATHS.circle;
@@ -547,15 +556,16 @@ let ui = {
   moreOpen:false,
   timerId:null,
   ttMode:"daily",
-  ttActiveDay:DAYS[todayObj().getDay()],
+  ttActiveDate: toISO(todayObj()),
   monthOffset:0,
   github:{
     token:"", owner:"", repo:"", path:"do-or-die-data.json", branch:"main",
     autoSync:false, status:"idle", message:"", lastSyncedAt:null, sha:null, timer:null,
   },
 };
-let taskModal = null;   // {mode:'today'|'timetable', dayKey, task, selDays, dateScoped, rangeStart, rangeEnd}
-let bulkModal = null;   // {selDays, scope, rangeStart, rangeEnd, monthPreset}
+let taskModal = null;     // {mode, dayKey, task, selDays, dateScoped, rangeStart, rangeEnd}
+let bulkModal = null;     // {selDays, scope, rangeStart, rangeEnd, monthPreset}
+let roadmapModal = null;  // {id, month, year, monthIndex, weekday, weekend}
 
 const NAV = [
   {key:"today",label:"Today",icon:"listChecks"},
@@ -700,31 +710,71 @@ function renderToday(){
 }
 
 /* ============================= Timetable view ============================= */
-function renderTimetable(){
+function renderDateStrip(){
+  const active=new Date(ui.ttActiveDate+"T00:00:00");
+  const ws=startOfWeek(active);
   const today=todayObj();
+  let strip = `<div style="display:flex;align-items:center;gap:6px;margin-bottom:12px;">
+    <button class="icon-btn" data-action="ttWeekNav" data-dir="-1" title="Previous week">${ic('chevronLeft',14)}</button>
+    <div class="day-strip" style="flex:1;">`;
+  DAYS.forEach((d,i)=>{
+    const date=addDays(ws,i); const dateStr=toISO(date);
+    const isActive=dateStr===ui.ttActiveDate;
+    const isToday=dateStr===toISO(today);
+    strip += `<button class="${isActive?'on':''}" data-action="ttSetDate" data-date="${dateStr}">${DAY_SHORT[d]} ${date.getDate()}/${date.getMonth()+1}${isToday?' \u25CF':''}</button>`;
+  });
+  strip += `</div><button class="icon-btn" data-action="ttWeekNav" data-dir="1" title="Next week">${ic('chevronRight',14)}</button></div>`;
+  return strip;
+}
+function renderWeekNav(){
+  const ws=startOfWeek(new Date(ui.ttActiveDate+"T00:00:00"));
+  const we=addDays(ws,6);
+  return `<div style="display:flex;align-items:center;justify-content:center;gap:14px;margin-bottom:12px;">
+    <button class="icon-btn" data-action="ttWeekNav" data-dir="-1">${ic('chevronLeft',15)}</button>
+    <div style="font-weight:700;font-size:13.5px;color:${C.text};">${fmtDateShort(toISO(ws))} – ${fmtDateShort(toISO(we))}, ${we.getFullYear()}</div>
+    <button class="icon-btn" data-action="ttWeekNav" data-dir="1">${ic('chevronRight',15)}</button>
+  </div>`;
+}
+
+function renderTimetable(){
   let body="";
   if(ui.ttMode==="daily"){
-    body += `<div class="day-strip">${DAYS.map(d=>{
-      const isToday = d===DAYS[today.getDay()];
-      return `<button class="${ui.ttActiveDay===d?'on':''}" data-action="ttSetDay" data-day="${d}">${DAY_SHORT[d]}${isToday?'<span style="margin-left:5px;font-size:9px;">\u25CF</span>':''}</button>`;
-    }).join("")}</div>`;
-    body += `<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;">
-      <div style="font-weight:700;color:${C.text};font-size:15px;">${DAY_LABEL[ui.ttActiveDay]}</div>
-      <button class="btn-outline-sm" data-action="openAddTaskTT" data-day="${ui.ttActiveDay}">${ic('plus',13)} Add Task</button>
+    const activeDate=ui.ttActiveDate;
+    const dObj=new Date(activeDate+"T00:00:00");
+    const dayKey=dayKeyFor(dObj);
+    const isToday=activeDate===toISO(todayObj());
+    body += renderDateStrip();
+    body += `<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;flex-wrap:wrap;gap:10px;">
+      <div>
+        <div style="font-weight:700;color:${C.text};font-size:15px;">${DAY_LABEL[dayKey]}${isToday?' <span style="color:'+C.deepRed+';font-size:11px;font-weight:800;">TODAY</span>':''}</div>
+        <div style="font-size:12px;color:${C.textSec};font-family:'JetBrains Mono',monospace;">${fmtDateLong(activeDate)}</div>
+      </div>
+      <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
+        <input type="date" class="input" style="width:150px;" value="${activeDate}" onchange="ui.ttActiveDate=this.value; render();">
+        ${!isToday?`<button class="btn-outline-sm" data-action="ttToday">${ic('calendar',13)} Today</button>`:""}
+        <button class="btn-outline-sm" data-action="openAddTaskTT" data-day="${dayKey}">${ic('plus',13)} Add Task</button>
+      </div>
     </div>`;
-    const list=state.days[ui.ttActiveDay];
+    const list=state.days[dayKey].filter(t=>inRange(activeDate,t.dateRange)).sort((a,b)=>parseMin(a.start)-parseMin(b.start));
     if(list.length===0){
-      body += `<div class="empty">No tasks on ${DAY_LABEL[ui.ttActiveDay]}. Add one, or use Bulk Schedule.</div>`;
+      body += `<div class="empty">No tasks on ${DAY_LABEL[dayKey]} (${fmtDateShort(activeDate)}). Add one, or use Bulk Schedule.</div>`;
     } else {
-      body += list.map(t=>taskRowHTML(t,toISO(today),ui.ttActiveDay)).join("");
+      body += list.map(t=>taskRowHTML(t,activeDate,dayKey)).join("");
     }
   } else if(ui.ttMode==="weekly"){
-    body += `<div class="week-grid">${DAYS.map(d=>{
-      const s=dayStats(state,addDays(startOfWeek(today),DAYS.indexOf(d)));
-      const tasks=[...state.days[d]].sort((a,b)=>parseMin(a.start)-parseMin(b.start));
-      return `<div class="week-col">
+    body += renderWeekNav();
+    const ws=startOfWeek(new Date(ui.ttActiveDate+"T00:00:00"));
+    body += `<div class="week-grid">${DAYS.map((d,i)=>{
+      const date=addDays(ws,i); const dateStr=toISO(date);
+      const s=dayStats(state,date);
+      const tasks=[...state.days[d]].filter(t=>inRange(dateStr,t.dateRange)).sort((a,b)=>parseMin(a.start)-parseMin(b.start));
+      const isToday=dateStr===toISO(todayObj());
+      return `<div class="week-col" style="${isToday?`border-color:${C.deepRed};`:''}">
         <div class="week-col-head">
-          <div style="font-weight:800;font-size:12.5px;color:${C.text};">${DAY_SHORT[d].toUpperCase()}</div>
+          <div>
+            <div style="font-weight:800;font-size:12.5px;color:${C.text};">${DAY_SHORT[d].toUpperCase()}</div>
+            <div style="font-size:10px;color:${C.textSec};">${date.getDate()}/${date.getMonth()+1}</div>
+          </div>
           <div style="font-size:10.5px;font-weight:700;color:${C.deepRed};">${s.pct}%</div>
         </div>
         ${tasks.map(t=>`<button class="week-task" style="border-left:3px solid ${PRIORITY_MAP[t.priority].color}" data-action="editTask" data-day="${d}" data-id="${t.id}">
@@ -739,7 +789,7 @@ function renderTimetable(){
   return `
   <div class="view-header-row" style="margin-bottom:14px;">
     <div class="view-title">Timetable</div>
-    <div style="display:flex;gap:8px;">
+    <div style="display:flex;gap:8px;flex-wrap:wrap;">
       <div class="tabs">
         ${["daily","weekly","month"].map(m=>`<button class="${ui.ttMode===m?'on':''}" data-action="ttSetMode" data-mode="${m}">${m}</button>`).join("")}
       </div>
@@ -781,9 +831,9 @@ function renderMonthHeatmap(){
       const isToday=toISO(d)===toISO(now);
       const bg=cellColor(s.pct,s.total);
       const txt = (s.pct>=40 && s.total>0) ? C.white : C.text;
-      return `<div class="month-cell" title="${d.getDate()}: ${s.pct}%" style="background:${bg};${isToday?`border:2px solid ${C.darkRed};`:''}">
+      return `<button class="month-cell" data-action="ttJumpToDate" data-date="${toISO(d)}" title="${d.getDate()}: ${s.pct}%" style="cursor:pointer;background:${bg};${isToday?`border:2px solid ${C.darkRed};`:''}">
         <span style="font-size:11px;font-weight:700;color:${txt};">${d.getDate()}</span>
-      </div>`;
+      </button>`;
     }).join("")}
   </div>
   <div class="month-legend">
@@ -797,25 +847,36 @@ function renderMonthHeatmap(){
 /* ============================= Roadmap view ============================= */
 function renderRoadmap(){
   const now=new Date();
-  const activeIdx=ROADMAP.findIndex(r=>r.year===now.getFullYear() && r.monthIndex===now.getMonth());
+  const list=[...state.roadmap].sort((a,b)=>(a.year-b.year)||(a.monthIndex-b.monthIndex));
   return `
-  <div class="view-title" style="margin-bottom:4px;">Monthly Learning Roadmap</div>
-  <div style="font-size:12.5px;color:${C.textSec};margin-bottom:16px;">Weekday subject vs weekend subject, month by month. Override any day individually in the Timetable.</div>
-  <div style="display:flex;flex-direction:column;gap:10px;">
-    ${ROADMAP.map((r,i)=>{
-      const isActive=i===activeIdx;
-      const progress=state.roadmapProgress[r.month]??0;
+  <div class="view-header-row" style="margin-bottom:4px;">
+    <div>
+      <div class="view-title">Monthly Learning Roadmap</div>
+      <div style="font-size:12.5px;color:${C.textSec};margin-top:2px;">Weekday subject vs weekend subject, month by month — fully editable. Override any day individually in the Timetable.</div>
+    </div>
+    <button class="btn-primary" data-action="openRoadmapAdd">${ic('plus',14,'#fff')} Add Month</button>
+  </div>
+  <div style="display:flex;flex-direction:column;gap:10px;margin-top:14px;">
+    ${list.length===0?`<div class="empty">No roadmap months yet. Add one to start planning.</div>`:""}
+    ${list.map(r=>{
+      const isActive=r.year===now.getFullYear() && r.monthIndex===now.getMonth();
+      const progress=r.progress||0;
+      const btnStyle = isActive? `background:rgba(255,255,255,.15);border-color:rgba(255,255,255,.4);color:#fff;` : "";
       return `<div class="roadmap-card" style="background:${isActive?`linear-gradient(135deg, ${C.deepRed}, ${C.darkRed})`:C.white};border:1px solid ${isActive?C.deepRed:C.border};color:${isActive?C.white:C.text};">
         <div class="roadmap-head">
-          <div style="font-weight:800;font-size:15px;font-family:'Space Grotesk',sans-serif;">${r.month.toUpperCase()} ${r.year}</div>
-          ${isActive?`<span class="pill" style="background:rgba(255,255,255,.2);color:#fff;border:1px solid rgba(255,255,255,.4);">CURRENT</span>`:""}
+          <div style="font-weight:800;font-size:15px;font-family:'Space Grotesk',sans-serif;">${esc(r.month).toUpperCase()} ${r.year}</div>
+          <div style="display:flex;align-items:center;gap:6px;">
+            ${isActive?`<span class="pill" style="background:rgba(255,255,255,.2);color:#fff;border:1px solid rgba(255,255,255,.4);">CURRENT</span>`:""}
+            <button class="icon-btn" style="${btnStyle}" data-action="openRoadmapEdit" data-id="${r.id}" title="Edit">${ic('pencil',14)}</button>
+            <button class="icon-btn danger" style="${btnStyle}" data-action="roadmapDelete" data-id="${r.id}" title="Delete">${ic('trash',14)}</button>
+          </div>
         </div>
         <div class="roadmap-cols">
-          <div><div class="roadmap-lab">Weekdays</div><div class="roadmap-val">${esc(r.weekday)}</div></div>
-          <div><div class="roadmap-lab">Weekends</div><div class="roadmap-val">${esc(r.weekend)}</div></div>
+          <div><div class="roadmap-lab">Weekdays</div><div class="roadmap-val">${esc(r.weekday)||"\u2014"}</div></div>
+          <div><div class="roadmap-lab">Weekends</div><div class="roadmap-val">${esc(r.weekend)||"\u2014"}</div></div>
         </div>
         <div class="roadmap-slider-row">
-          <input type="range" min="0" max="100" value="${progress}" data-action="roadmapSlider" data-month="${r.month}" style="accent-color:${isActive?'#fff':C.deepRed}">
+          <input type="range" min="0" max="100" value="${progress}" data-action="roadmapSlider" data-id="${r.id}" style="accent-color:${isActive?'#fff':C.deepRed}">
           <span style="font-size:12.5px;font-weight:700;min-width:34px;text-align:right;">${progress}%</span>
         </div>
       </div>`;
@@ -972,6 +1033,19 @@ function svgBarChartH(data,width=560){
   return `<svg viewBox="0 0 ${width} ${height}" width="100%" height="${height}">${rows}</svg>`;
 }
 
+function renderAnalyticsRoadmapSection(){
+  const now=new Date();
+  const list=[...state.roadmap].sort((a,b)=>(a.year-b.year)||(a.monthIndex-b.monthIndex));
+  if(list.length===0) return `<div style="font-size:12.5px;color:${C.textSec};">No roadmap months yet — add one in the Roadmap tab.</div>`;
+  return list.map(r=>{
+    const isActive=r.year===now.getFullYear() && r.monthIndex===now.getMonth();
+    return `<div class="cat-bar-row">
+      <div class="cat-bar-head"><span style="color:${C.text};font-weight:600;">${esc(r.month)} ${r.year}${isActive?' · current':''}</span><span style="color:${C.textSec};font-family:'JetBrains Mono',monospace;">${r.progress||0}%</span></div>
+      <div class="cat-bar-track"><div class="cat-bar-fill" style="width:${r.progress||0}%;background:${isActive?C.deepRed:C.peach};"></div></div>
+    </div>`;
+  }).join("");
+}
+
 function renderAnalytics(){
   const today=todayObj();
   const trend=[...Array(7)].map((_,i)=>{
@@ -1012,11 +1086,11 @@ function renderAnalytics(){
   </div>
   <div class="card" style="margin-bottom:16px;">
     <div style="font-weight:700;font-size:13px;color:${C.textSec};margin-bottom:10px;text-transform:uppercase;letter-spacing:.4px;">Hours by Category — This Week</div>
-    ${catData.length===0?`<div style="font-size:12.5px;color:${C.textSec};">No completions logged yet this week.</div>`:svgBarChartH(catData)}
+    ${catData.length===0?`<div style="font-size:12.5px;color:${C.textSec};">No completions logged yet this week. Tick off tasks in the Timetable or Today view to see this fill in.</div>`:svgBarChartH(catData)}
   </div>
   <div class="card">
     <div style="font-weight:700;font-size:13px;color:${C.textSec};margin-bottom:10px;text-transform:uppercase;letter-spacing:.4px;">Roadmap Progress</div>
-    <div style="font-size:12px;color:${C.textSec};">See the Roadmap tab to update subject completion.</div>
+    ${renderAnalyticsRoadmapSection()}
   </div>`;
 }
 
@@ -1046,7 +1120,7 @@ function renderGithubSyncCard(){
   return `
   <div style="font-weight:700;font-size:14px;margin-bottom:4px;">GitHub Sync</div>
   <div style="font-size:12.5px;color:${C.textSec};margin-bottom:12px;">
-    Push this tracker's data (tasks, done-ticks, streaks, War Room counters) to a JSON file in a GitHub repo, so it's backed up off-device and can be pulled onto another browser or device.
+    Push this tracker's data (tasks, done-ticks, streaks, roadmap, War Room counters) to a JSON file in a GitHub repo, so it's backed up off-device and can be pulled onto another browser or device.
     Your token is only ever stored in this browser${hasClaudeStorage?" (synced privately to your Claude account, never shared)":""} — it is never written into the synced file. The repo can be private.
   </div>
   <div class="field">
@@ -1155,10 +1229,7 @@ function render(){
   renderModals();
 }
 
-/* ============================= event delegation =============================
-   Attached once, on document, so it covers both #root and #modalRoot
-   (modals are rendered into a separate container that re-renders independently
-   of the main view, so a listener scoped to #root alone would never see them). */
+/* ============================= event delegation ============================= */
 function attachGlobalListeners(){
   document.addEventListener("click",(e)=>{
     const el=e.target.closest("[data-action]");
@@ -1168,8 +1239,9 @@ function attachGlobalListeners(){
   });
   document.addEventListener("input",(e)=>{
     if(e.target.dataset && e.target.dataset.action==="roadmapSlider"){
-      const month=e.target.dataset.month;
-      state.roadmapProgress[month]=Number(e.target.value);
+      const id=e.target.dataset.id;
+      const item=state.roadmap.find(r=>r.id===id);
+      if(item) item.progress=Number(e.target.value);
       const numEl=e.target.parentElement.querySelector("span");
       if(numEl) numEl.textContent=`${e.target.value}%`;
     }
@@ -1185,8 +1257,6 @@ function handleAction(action,ds,e,el){
     case "navView": ui.view=ds.view; ui.moreOpen=false; render(); break;
     case "toggleMore": ui.moreOpen=true; render(); break;
     case "closeMore": {
-      // el is either the overlay (close only if backdrop itself was clicked)
-      // or a button inside the sheet with this same action (always close).
       const isOverlay = el.classList.contains("more-sheet-overlay");
       if(!isOverlay || e.target===el){ ui.moreOpen=false; render(); }
       break;
@@ -1202,7 +1272,10 @@ function handleAction(action,ds,e,el){
     case "openAddTaskTT": openTaskModal({dayKey:ds.day, task:null}); break;
 
     case "ttSetMode": ui.ttMode=ds.mode; render(); break;
-    case "ttSetDay": ui.ttActiveDay=ds.day; render(); break;
+    case "ttSetDate": ui.ttActiveDate=ds.date; render(); break;
+    case "ttToday": ui.ttActiveDate=toISO(todayObj()); render(); break;
+    case "ttWeekNav": { const d=new Date(ui.ttActiveDate+"T00:00:00"); ui.ttActiveDate=toISO(addDays(d,7*Number(ds.dir))); render(); break; }
+    case "ttJumpToDate": ui.ttActiveDate=ds.date; ui.ttMode="daily"; render(); break;
     case "monthNav": ui.monthOffset += Number(ds.dir); render(); break;
 
     case "wrBump": {
@@ -1214,10 +1287,18 @@ function handleAction(action,ds,e,el){
 
     case "openBulk": openBulkModal(); break;
 
+    case "openRoadmapAdd": openRoadmapAdd(); break;
+    case "openRoadmapEdit": openRoadmapEdit(ds.id); break;
+    case "roadmapDelete": {
+      if(confirm("Delete this roadmap month? This cannot be undone.")) roadmapDelete(ds.id);
+      break;
+    }
+    case "roadmapSave": saveRoadmapModal(); break;
+
     case "ghSaveConfig": {
       const ids=["gh-token","gh-owner","gh-repo","gh-path","gh-branch"];
       const map={"gh-token":"token","gh-owner":"owner","gh-repo":"repo","gh-path":"path","gh-branch":"branch"};
-      ids.forEach(id=>{ const el=document.getElementById(id); if(el) ui.github[map[id]]=el.value.trim(); });
+      ids.forEach(id=>{ const el2=document.getElementById(id); if(el2) ui.github[map[id]]=el2.value.trim(); });
       saveGithubConfig();
       setGithubStatus("idle","Settings saved.");
       break;
@@ -1238,8 +1319,6 @@ function handleAction(action,ds,e,el){
 
     /* modal actions */
     case "modalClose": {
-      // el is either the overlay (close only if backdrop itself was clicked)
-      // or the X button with this same action (always close).
       const isOverlay = el.classList.contains("modal-overlay");
       if(!isOverlay || e.target===el){ closeModals(); }
       break;
@@ -1315,7 +1394,7 @@ function openTaskModal({dayKey,task}){
   };
   renderModals();
 }
-function closeModals(){ taskModal=null; bulkModal=null; renderModals(); }
+function closeModals(){ taskModal=null; bulkModal=null; roadmapModal=null; renderModals(); }
 
 function taskModalHTML(){
   if(!taskModal) return "";
@@ -1416,7 +1495,7 @@ function openBulkModal(){
 function bulkModalHTML(){
   if(!bulkModal) return "";
   const m=bulkModal;
-  const monthOptions=ROADMAP.map(r=>({key:`${r.year}-${r.monthIndex}`,label:`${r.month} ${r.year}`,year:r.year,monthIndex:r.monthIndex}));
+  const monthOptions=[...state.roadmap].sort((a,b)=>(a.year-b.year)||(a.monthIndex-b.monthIndex)).map(r=>({key:`${r.year}-${r.monthIndex}`,label:`${r.month} ${r.year}`,year:r.year,monthIndex:r.monthIndex}));
   return `
   <div class="modal-overlay" data-action="modalClose">
     <div class="modal-box wide">
@@ -1488,7 +1567,7 @@ function bulkHintText(){
   const scopeTxt = m.scope==='range'
     ? ` only between <b>${fmtDateShort(m.rangeStart)}</b> and <b>${fmtDateShort(m.rangeEnd)}</b>.`
     : ` every week, indefinitely.`;
-  return `Applies <b>${esc(m.name||"this task")}</b> (${m.start}–${m.end}) to <b>${daysTxt}</b>${scopeTxt}`;
+  return `Applies <b>${esc(m.name||"this task")}</b> (${m.start}–${m.end}) to <b>${daysTxt}</b>${scopeTxt} It will show up immediately on those days in the Timetable.`;
 }
 function updateBulkHint(){
   const el=document.getElementById("bm-hint");
@@ -1506,11 +1585,84 @@ function applyBulkModal(){
   });
   closeModals();
   commit();
+  // Jump the Timetable view to the first day/date affected, so the user immediately sees it reflected.
+  ui.view="timetable"; ui.ttMode="daily";
+  if(m.scope==='range'){
+    ui.ttActiveDate = m.rangeStart;
+  } else {
+    const todayD = todayObj();
+    const targetDay = m.selDays[0];
+    let d = new Date(todayD);
+    for(let i=0;i<7;i++){ if(dayKeyFor(d)===targetDay) break; d=addDays(d,1); }
+    ui.ttActiveDate = toISO(d);
+  }
+  render();
+}
+
+/* ============================= Roadmap modal ============================= */
+function openRoadmapAdd(){
+  const now=new Date();
+  const sorted=[...state.roadmap].sort((a,b)=>(a.year-b.year)||(a.monthIndex-b.monthIndex));
+  const last=sorted[sorted.length-1];
+  let year=now.getFullYear(), monthIndex=now.getMonth();
+  if(last){ monthIndex=last.monthIndex+1; year=last.year; if(monthIndex>11){ monthIndex=0; year++; } }
+  roadmapModal={id:null, month:MONTH_NAMES[monthIndex], year, monthIndex, weekday:"", weekend:""};
+  renderModals();
+}
+function openRoadmapEdit(id){
+  const r=state.roadmap.find(x=>x.id===id); if(!r) return;
+  roadmapModal={id:r.id, month:r.month, year:r.year, monthIndex:r.monthIndex, weekday:r.weekday, weekend:r.weekend};
+  renderModals();
+}
+function roadmapModalHTML(){
+  if(!roadmapModal) return "";
+  const m=roadmapModal;
+  return `
+  <div class="modal-overlay" data-action="modalClose">
+    <div class="modal-box">
+      <div class="modal-head">
+        <div class="modal-title">${m.id?"Edit Month":"Add Month"}</div>
+        <button class="modal-close" data-action="modalClose">${ic('x',16)}</button>
+      </div>
+      <div class="row-2">
+        <div><div class="field-label">Month</div>
+          <select class="input" onchange="roadmapModal.monthIndex=Number(this.value); roadmapModal.month=MONTH_NAMES[Number(this.value)];">
+            ${MONTH_NAMES.map((mn,i)=>`<option value="${i}" ${m.monthIndex===i?'selected':''}>${mn}</option>`).join("")}
+          </select>
+        </div>
+        <div><div class="field-label">Year</div><input class="input" type="number" value="${m.year}" oninput="roadmapModal.year=Number(this.value)||${m.year}"></div>
+      </div>
+      <div class="field"><div class="field-label">Weekday Subject</div><input class="input" value="${esc(m.weekday)}" placeholder="e.g. DSA Foundations" oninput="roadmapModal.weekday=this.value"></div>
+      <div class="field"><div class="field-label">Weekend Subject</div><input class="input" value="${esc(m.weekend)}" placeholder="e.g. Core Java + SQL" oninput="roadmapModal.weekend=this.value"></div>
+      <div class="modal-actions">
+        <div>${m.id?`<button class="btn-ghost" style="color:${C.deepRed};border-color:#F3C6C6;" data-action="roadmapDelete" data-id="${m.id}">${ic('trash',14)} Delete</button>`:""}</div>
+        <div class="right">
+          <button class="btn-ghost" data-action="modalClose">Cancel</button>
+          <button class="btn-primary" data-action="roadmapSave">Save</button>
+        </div>
+      </div>
+    </div>
+  </div>`;
+}
+function saveRoadmapModal(){
+  const m=roadmapModal;
+  if(m.id){
+    const r=state.roadmap.find(x=>x.id===m.id);
+    if(r){ r.month=m.month; r.year=m.year; r.monthIndex=m.monthIndex; r.weekday=m.weekday; r.weekend=m.weekend; }
+  } else {
+    state.roadmap.push({id:uid(), month:m.month, year:m.year, monthIndex:m.monthIndex, weekday:m.weekday, weekend:m.weekend, progress:0});
+  }
+  roadmapModal=null; renderModals(); commit();
+}
+function roadmapDelete(id){
+  state.roadmap=state.roadmap.filter(r=>r.id!==id);
+  roadmapModal=null;
+  commit();
 }
 
 function renderModals(){
   const mr=document.getElementById("modalRoot");
-  mr.innerHTML = taskModal ? taskModalHTML() : (bulkModal ? bulkModalHTML() : "");
+  mr.innerHTML = taskModal ? taskModalHTML() : (bulkModal ? bulkModalHTML() : (roadmapModal ? roadmapModalHTML() : ""));
 }
 
 /* ============================= boot ============================= */
@@ -1518,11 +1670,12 @@ function renderModals(){
   document.getElementById("root").innerHTML = `<div style="display:flex;align-items:center;justify-content:center;height:300px;color:${C.textSec};font-family:Inter,sans-serif;">Loading mission control...</div>`;
   await requestPersistentStorage();
   const loaded = await loadState();
-  state = loaded || seedState();
+  state = migrateState(loaded);
   const ghCfg = await loadGithubConfig();
   if(ghCfg) Object.assign(ui.github, ghCfg);
   attachGlobalListeners();
   render();
+  await saveState(state);
 })();
 </script>
 </body>
