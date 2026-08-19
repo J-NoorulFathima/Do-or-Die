@@ -50,6 +50,22 @@
           "end": "2027-03-31"
         },
         "completedDates": []
+      },
+      {
+        "id": "x8w2s6ppn3l4",
+        "groupId": "dx5uekwgn3l4",
+        "start": "18:00",
+        "end": "21:00",
+        "name": "SRM - ASSESSMENTS (week : 1 - 10)",
+        "category": "Assessment",
+        "priority": "high",
+        "notes": "",
+        "flexible": false,
+        "dateRange": {
+          "start": "2026-08-24",
+          "end": "2026-09-30"
+        },
+        "completedDates": []
       }
     ],
     "tue": [
@@ -68,6 +84,22 @@
           "end": "2027-03-31"
         },
         "completedDates": []
+      },
+      {
+        "id": "tsgooqv4n3l4",
+        "groupId": "dx5uekwgn3l4",
+        "start": "18:00",
+        "end": "21:00",
+        "name": "SRM - ASSESSMENTS (week : 1 - 10)",
+        "category": "Assessment",
+        "priority": "high",
+        "notes": "",
+        "flexible": false,
+        "dateRange": {
+          "start": "2026-08-24",
+          "end": "2026-09-30"
+        },
+        "completedDates": []
       }
     ],
     "wed": [
@@ -84,6 +116,22 @@
         "dateRange": {
           "start": "2026-08-19",
           "end": "2027-03-31"
+        },
+        "completedDates": []
+      },
+      {
+        "id": "658opbc6n3l4",
+        "groupId": "dx5uekwgn3l4",
+        "start": "18:00",
+        "end": "21:00",
+        "name": "SRM - ASSESSMENTS (week : 1 - 10)",
+        "category": "Assessment",
+        "priority": "high",
+        "notes": "",
+        "flexible": false,
+        "dateRange": {
+          "start": "2026-08-24",
+          "end": "2026-09-30"
         },
         "completedDates": []
       }
