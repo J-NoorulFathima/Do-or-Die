@@ -231,7 +231,22 @@ const MOTIVATION = [
 ];
 
 /* ============================= date utils ============================= */
-function toISO(d){ const x=new Date(d); x.setHours(0,0,0,0); return x.toISOString().slice(0,10); }
+/* FIX: toISO previously did `new Date(d).toISOString().slice(0,10)` after
+   zeroing the LOCAL time to midnight. toISOString() always converts to UTC,
+   so for any timezone ahead of UTC (e.g. India, UTC+5:30) local midnight
+   becomes the PREVIOUS day in UTC — every "today" date string, the default
+   Timetable active date, and all date-range comparisons were silently off
+   by one day. That's why newly scheduled tasks (via Bulk Schedule or Add
+   Task) looked like they "weren't reflecting" in the Timetable: the app was
+   defaulting to yesterday's weekday, not today's. Fixed to build the ISO
+   string from local date parts directly, with no UTC conversion. */
+function toISO(d){
+  const x=new Date(d);
+  const y=x.getFullYear();
+  const m=String(x.getMonth()+1).padStart(2,"0");
+  const day=String(x.getDate()).padStart(2,"0");
+  return `${y}-${m}-${day}`;
+}
 function addDays(d,n){ const x=new Date(d); x.setDate(x.getDate()+n); return x; }
 function startOfWeek(d){ const x=new Date(d); x.setHours(0,0,0,0); x.setDate(x.getDate()-x.getDay()); return x; }
 function todayObj(){ const x=new Date(); x.setHours(0,0,0,0); return x; }
@@ -1584,10 +1599,6 @@ function applyBulkModal(){
   const nameEl=document.getElementById("bm-name");
   if(nameEl) m.name=nameEl.value.trim();
 
-  // FIX: previously, if the name or day-selection was missing, this function
-  // just returned — the button appeared to do nothing and nothing showed up
-  // in the Timetable, with zero feedback about why. Now we surface exactly
-  // what's missing right on the form.
   const errors={};
   if(!m.name) errors.name="Give this task a name first.";
   if(m.selDays.length===0) errors.days="Pick at least one day to apply this to.";
@@ -1603,16 +1614,10 @@ function applyBulkModal(){
     name:m.name, start:m.start, end:m.end, category:m.category, priority:m.priority,
     selDays:m.selDays, dateRange: m.scope==='range' ? {start:m.rangeStart,end:m.rangeEnd} : null,
   });
-  closeModals();
-  commit();
+
   // Jump the Timetable view to the first day/date actually affected, so the user immediately sees it reflected.
   ui.view="timetable"; ui.ttMode="daily";
   if(m.scope==='range'){
-    // FIX: don't just jump to rangeStart — it may fall on a weekday the user
-    // never selected (e.g. range starts on a Monday but only "Thu" was picked),
-    // which made it look like the bulk schedule "didn't apply" anything.
-    // Instead, scan forward from rangeStart to the first date inside the
-    // range whose weekday is actually one of the selected days.
     const rs = new Date(m.rangeStart+"T00:00:00");
     const re = new Date(m.rangeEnd+"T00:00:00");
     let found = null;
@@ -1631,6 +1636,15 @@ function applyBulkModal(){
     for(let i=0;i<7;i++){ if(dayKeyFor(d)===targetDay) break; d=addDays(d,1); }
     ui.ttActiveDate = toISO(d);
   }
+
+  // FIX: closeModals() previously ran before commit()/the view jump, and it
+  // only re-renders the modal layer (renderModals()), not the full page.
+  // The subsequent commit() + manual render() at the end already redraw the
+  // whole app correctly, so we just need closeModals() to run after all
+  // state (including ui.view/ui.ttActiveDate) is finalized, and let the
+  // final render() below do the one full repaint.
+  closeModals();
+  commit();
   render();
 }
 
