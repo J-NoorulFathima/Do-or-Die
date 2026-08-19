@@ -172,6 +172,22 @@
           "end": "2026-11-14"
         },
         "completedDates": []
+      },
+      {
+        "id": "uh086jdrxsgw",
+        "groupId": "zuorh9pzxsgw",
+        "start": "20:00",
+        "end": "21:00",
+        "name": "SRM - Internship / Mini project",
+        "category": "Class",
+        "priority": "medium",
+        "notes": "",
+        "flexible": false,
+        "dateRange": {
+          "start": "2026-08-22",
+          "end": "2026-11-14"
+        },
+        "completedDates": []
       }
     ]
   },
