@@ -1,0 +1,1456 @@
+import React, { useEffect, useMemo, useRef, useState } from "react";
+import {
+  Flame, CheckCircle2, Circle, Clock, Plus, Pencil, Trash2, Copy,
+  ChevronLeft, ChevronRight, Target, Award, TrendingUp, Settings as SettingsIcon,
+  LayoutGrid, ListChecks, Map as MapIcon, Swords, BarChart3, X, Play, Pause,
+  Sun, Moon, RotateCcw, Download, MoreHorizontal, Trophy, AlertTriangle
+} from "lucide-react";
+import {
+  BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, LineChart, Line
+} from "recharts";
+
+/* =========================================================================
+   DO OR DIE — SDE Placement Mission Control
+   Single-file React artifact. Palette + structure per brief.
+   ========================================================================= */
+
+const C = {
+  deepRed: "#B91C1C",
+  strongRed: "#DC2626",
+  darkRed: "#7F1D1D",
+  peach: "#FFD6C2",
+  softPeach: "#FFF1EB",
+  lightPeach: "#FFF7F3",
+  white: "#FFFFFF",
+  offWhite: "#FFF9F7",
+  text: "#171717",
+  textSec: "#737373",
+  border: "#E5E5E5",
+};
+
+const DAYS = ["sun", "mon", "tue", "wed", "thu", "fri", "sat"];
+const DAY_LABEL = { sun: "Sunday", mon: "Monday", tue: "Tuesday", wed: "Wednesday", thu: "Thursday", fri: "Friday", sat: "Saturday" };
+const DAY_SHORT = { sun: "Sun", mon: "Mon", tue: "Tue", wed: "Wed", thu: "Thu", fri: "Fri", sat: "Sat" };
+
+const CATEGORIES = ["SDE Placement", "DSA", "System Design", "Java", "SQL", "Linux", "AWS", "DevOps", "React", "Generative AI", "Aptitude", "Project", "Internship", "Assessment", "Class", "Work", "Personal", "Other"];
+
+const PRIORITIES = [
+  { key: "critical", label: "Critical", emoji: "\u{1F534}", color: C.deepRed },
+  { key: "high", label: "High", emoji: "\u{1F7E0}", color: C.strongRed },
+  { key: "medium", label: "Medium", emoji: "\u{1F7E1}", color: "#E8A87C" },
+  { key: "low", label: "Low", emoji: "\u26AA", color: C.border },
+];
+const PRIORITY_MAP = Object.fromEntries(PRIORITIES.map(p => [p.key, p]));
+
+const ROADMAP = [
+  { month: "August", year: 2026, monthIndex: 7, weekday: "DSA Foundations", weekend: "Core Java + SQL" },
+  { month: "September", year: 2026, monthIndex: 8, weekday: "\u2014", weekend: "Spring Boot" },
+  { month: "October", year: 2026, monthIndex: 9, weekday: "Linux", weekend: "Spring Boot" },
+  { month: "November", year: 2026, monthIndex: 10, weekday: "AWS", weekend: "Aptitude" },
+  { month: "December", year: 2026, monthIndex: 11, weekday: "DevOps", weekend: "Aptitude" },
+  { month: "January", year: 2027, monthIndex: 0, weekday: "React", weekend: "Generative AI" },
+  { month: "February", year: 2027, monthIndex: 1, weekday: "System Design", weekend: "Mock Interviews" },
+  { month: "March", year: 2027, monthIndex: 2, weekday: "Interview Prep", weekend: "Placement Drives" },
+];
+
+const MOTIVATION = [
+  "NO ZERO DAYS.",
+  "ONE MORE PROBLEM.",
+  "BUILD. SOLVE. REPEAT.",
+  "5 DAYS. 2 GRACE DAYS. NO EXCUSES.",
+  "THE OFFER IS THE GOAL.",
+  "YOU DON'T NEED MOTIVATION. YOU NEED CONSISTENCY.",
+];
+
+/* ---------------------------- date utilities ---------------------------- */
+
+function toISO(d) { const x = new Date(d); x.setHours(0, 0, 0, 0); return x.toISOString().slice(0, 10); }
+function addDays(d, n) { const x = new Date(d); x.setDate(x.getDate() + n); return x; }
+function startOfWeek(d) { const x = new Date(d); x.setHours(0, 0, 0, 0); x.setDate(x.getDate() - x.getDay()); return x; }
+function todayObj() { const x = new Date(); x.setHours(0, 0, 0, 0); return x; }
+function dayKeyFor(d) { return DAYS[new Date(d).getDay()]; }
+function parseMin(t) { const [h, m] = t.split(":").map(Number); return h * 60 + m; }
+function durationHours(start, end) { let diff = parseMin(end) - parseMin(start); if (diff <= 0) diff += 1440; return Math.round((diff / 60) * 100) / 100; }
+function fmtTime(t) { const [h, m] = t.split(":").map(Number); const ap = h >= 12 ? "PM" : "AM"; let hh = h % 12; if (hh === 0) hh = 12; return `${hh}:${String(m).padStart(2, "0")} ${ap}`; }
+function fmtHours(h) { return (h % 1 === 0) ? `${h}h` : `${h}h`; }
+function uid() { return Math.random().toString(36).slice(2, 10) + Date.now().toString(36).slice(-4); }
+function inRange(dateStr, range) { if (!range) return true; return dateStr >= range.start && dateStr <= range.end; }
+function fmtDateShort(iso) { const d = new Date(iso + "T00:00:00"); return d.toLocaleDateString("en-US", { month: "short", day: "numeric" }); }
+function monthBounds(year, monthIndex) {
+  const first = new Date(year, monthIndex, 1);
+  const last = new Date(year, monthIndex + 1, 0);
+  return { start: toISO(first), end: toISO(last) };
+}
+
+/* ------------------------------ seed data -------------------------------- */
+
+function defaultTasksForDay() {
+  const blocks = [
+    { start: "05:00", end: "06:00", name: "Morning Routine", category: "Personal", priority: "low", flexible: true },
+    { start: "06:00", end: "08:00", name: "DSA", category: "DSA", priority: "critical" },
+    { start: "08:00", end: "09:30", name: "Core Java / SQL", category: "Java", priority: "critical" },
+    { start: "09:30", end: "11:00", name: "System Design \u2014 Own Prep", category: "System Design", priority: "critical" },
+    { start: "11:00", end: "13:00", name: "SRM Class", category: "Class", priority: "high" },
+    { start: "13:00", end: "14:00", name: "Lunch Break", category: "Personal", priority: "low", flexible: true },
+    { start: "14:00", end: "17:00", name: "Besant Class", category: "Class", priority: "high" },
+    { start: "17:00", end: "18:00", name: "Projects / Backend / Frontend", category: "Project", priority: "critical" },
+    { start: "18:00", end: "19:00", name: "Assessments / Mock Interviews", category: "Assessment", priority: "critical" },
+    { start: "19:00", end: "20:00", name: "Resume + Applications", category: "SDE Placement", priority: "critical" },
+    { start: "20:00", end: "22:00", name: "Assessment", category: "Assessment", priority: "high" },
+    { start: "22:00", end: "23:00", name: "Wind Down", category: "Personal", priority: "low", flexible: true },
+    { start: "23:00", end: "01:00", name: "Mini Project / Internship", category: "Internship", priority: "high" },
+    { start: "01:00", end: "04:00", name: "Work", category: "Work", priority: "medium" },
+    { start: "04:00", end: "05:00", name: "YouTube", category: "Personal", priority: "low" },
+  ];
+  return blocks.map(b => ({
+    id: uid(),
+    groupId: null,
+    start: b.start,
+    end: b.end,
+    name: b.name,
+    category: b.category,
+    priority: b.priority,
+    notes: "",
+    flexible: !!b.flexible,
+    dateRange: null,
+    completedDates: [],
+  })).sort((a, b) => parseMin(a.start) - parseMin(b.start));
+}
+
+function seedState() {
+  const days = {};
+  DAYS.forEach(k => { days[k] = defaultTasksForDay(); });
+  return {
+    days,
+    bestStreak: 0,
+    warRoom: { dsaProblems: 0, mockInterviews: 0, resumeApplications: 0, interviewCalls: 0 },
+    roadmapProgress: {},
+  };
+}
+
+/* ---------------------------- stat computation ---------------------------- */
+
+function dayStats(state, dateObj) {
+  const dateStr = toISO(dateObj);
+  const dayKey = dayKeyFor(dateObj);
+  const tasks = (state.days[dayKey] || []).filter(t => !t.flexible && inRange(dateStr, t.dateRange));
+  const total = tasks.length;
+  const completed = tasks.filter(t => t.completedDates.includes(dateStr)).length;
+  const pct = total ? Math.round((completed / total) * 100) : 0;
+  const hoursPlanned = tasks.reduce((s, t) => s + durationHours(t.start, t.end), 0);
+  const hoursCompleted = tasks.filter(t => t.completedDates.includes(dateStr)).reduce((s, t) => s + durationHours(t.start, t.end), 0);
+  return { dateStr, dayKey, total, completed, pct, hoursPlanned: Math.round(hoursPlanned * 10) / 10, hoursCompleted: Math.round(hoursCompleted * 10) / 10 };
+}
+
+function computeStreak(state) {
+  let cursor = todayObj();
+  const t0 = dayStats(state, cursor);
+  if (t0.pct < 80) cursor = addDays(cursor, -1);
+  let streak = 0;
+  while (true) {
+    const s = dayStats(state, cursor);
+    if (s.total > 0 && s.pct >= 80) { streak++; cursor = addDays(cursor, -1); } else break;
+    if (streak > 3650) break;
+  }
+  return streak;
+}
+
+function weekStats(state, weekStart) {
+  const today = todayObj();
+  const dayList = [...Array(7)].map((_, i) => addDays(weekStart, i));
+  const stats = dayList.map(d => ({ date: d, ...dayStats(state, d) }));
+  let hits = 0, missesSoFar = 0;
+  stats.forEach(s => {
+    if (s.date > today) return;
+    if (s.total === 0) return;
+    if (s.pct >= 80) hits++; else missesSoFar++;
+  });
+  return {
+    stats,
+    hits,
+    missesSoFar,
+    primaryMet: Math.min(hits, 5),
+    graceUsed: Math.min(missesSoFar, 2),
+    weekComplete: hits >= 5,
+    weekBroken: missesSoFar > 2,
+  };
+}
+
+function weeklyStreakCount(state) {
+  let cursor = startOfWeek(todayObj());
+  let count = 0;
+  const cur = weekStats(state, cursor);
+  if (cur.weekComplete) { count++; }
+  cursor = addDays(cursor, -7);
+  while (true) {
+    const s = weekStats(state, cursor);
+    if (s.weekComplete) { count++; cursor = addDays(cursor, -7); } else break;
+    if (count > 520) break;
+  }
+  return count;
+}
+
+function readinessScore(state) {
+  const last7 = [...Array(7)].map((_, i) => dayStats(state, addDays(todayObj(), -i)));
+  const withData = last7.filter(s => s.total > 0);
+  const avgCompletion = withData.length ? withData.reduce((s, x) => s + x.pct, 0) / withData.length : 0;
+  const streak = computeStreak(state);
+  const streakScore = Math.min(streak, 30) / 30 * 100;
+  const wr = state.warRoom || {};
+  const activityScore = Math.min(100, (wr.dsaProblems || 0) * 1.2 + (wr.mockInterviews || 0) * 4 + (wr.resumeApplications || 0) * 1);
+  const score = Math.round(avgCompletion * 0.45 + streakScore * 0.25 + activityScore * 0.30);
+  return Math.max(0, Math.min(100, score));
+}
+
+function currentRoadmapEntry() {
+  const now = new Date();
+  return ROADMAP.find(r => r.year === now.getFullYear() && r.monthIndex === now.getMonth()) || null;
+}
+
+/* --------------------------------- storage -------------------------------- */
+
+const STORAGE_KEY = "do-or-die-state-v1";
+
+async function loadState() {
+  try {
+    const res = await window.storage.get(STORAGE_KEY, false);
+    if (res && res.value) return JSON.parse(res.value);
+  } catch (e) { /* not found or error -> seed fresh */ }
+  return null;
+}
+async function saveState(state) {
+  try { await window.storage.set(STORAGE_KEY, JSON.stringify(state), false); } catch (e) { /* ignore */ }
+}
+
+/* --------------------------------- UI bits -------------------------------- */
+
+function Pill({ children, style, ...rest }) {
+  return (
+    <span
+      {...rest}
+      style={{
+        display: "inline-flex", alignItems: "center", gap: 4,
+        padding: "2px 9px", borderRadius: 999, fontSize: 11, fontWeight: 600,
+        letterSpacing: 0.3, background: C.softPeach, color: C.darkRed,
+        border: `1px solid ${C.peach}`, whiteSpace: "nowrap", ...style,
+      }}
+    >{children}</span>
+  );
+}
+
+function IconBtn({ onClick, title, children, danger }) {
+  return (
+    <button
+      onClick={onClick} title={title}
+      style={{
+        display: "inline-flex", alignItems: "center", justifyContent: "center",
+        width: 30, height: 30, borderRadius: 8, border: `1px solid ${C.border}`,
+        background: C.white, color: danger ? C.deepRed : C.textSec, cursor: "pointer",
+      }}
+      onMouseEnter={e => { e.currentTarget.style.background = danger ? "#FDEDEC" : C.lightPeach; }}
+      onMouseLeave={e => { e.currentTarget.style.background = C.white; }}
+    >{children}</button>
+  );
+}
+
+function ProgressRing({ pct, size = 88, stroke = 9, label, sub }) {
+  const r = (size - stroke) / 2;
+  const c = 2 * Math.PI * r;
+  const off = c - (Math.min(100, Math.max(0, pct)) / 100) * c;
+  return (
+    <div style={{ position: "relative", width: size, height: size }}>
+      <svg width={size} height={size} style={{ transform: "rotate(-90deg)" }}>
+        <circle cx={size / 2} cy={size / 2} r={r} stroke={C.softPeach} strokeWidth={stroke} fill="none" />
+        <circle cx={size / 2} cy={size / 2} r={r} stroke={C.deepRed} strokeWidth={stroke} fill="none"
+          strokeDasharray={c} strokeDashoffset={off} strokeLinecap="round"
+          style={{ transition: "stroke-dashoffset 0.6s ease" }} />
+      </svg>
+      <div style={{ position: "absolute", inset: 0, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center" }}>
+        <div style={{ fontFamily: "'Space Grotesk', sans-serif", fontWeight: 700, fontSize: size * 0.22, color: C.text, lineHeight: 1 }}>{label ?? `${pct}%`}</div>
+        {sub && <div style={{ fontSize: 9, color: C.textSec, marginTop: 2 }}>{sub}</div>}
+      </div>
+    </div>
+  );
+}
+
+function HazardBar({ height = 6 }) {
+  return (
+    <div style={{
+      height, width: "100%",
+      backgroundImage: `repeating-linear-gradient(-45deg, ${C.deepRed} 0px, ${C.deepRed} 10px, ${C.peach} 10px, ${C.peach} 20px)`,
+      opacity: 0.9,
+    }} />
+  );
+}
+
+function Modal({ title, onClose, children, wide }) {
+  return (
+    <div style={{ position: "fixed", inset: 0, background: "rgba(23,23,23,0.5)", zIndex: 100, display: "flex", alignItems: "flex-end", justifyContent: "center" }} onClick={onClose}>
+      <div
+        onClick={e => e.stopPropagation()}
+        style={{
+          background: C.white, width: "100%", maxWidth: wide ? 640 : 480, maxHeight: "88vh", overflowY: "auto",
+          borderRadius: "18px 18px 0 0", padding: 20, boxShadow: "0 -10px 40px rgba(0,0,0,0.2)",
+        }}
+      >
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 14 }}>
+          <div style={{ fontFamily: "'Space Grotesk', sans-serif", fontWeight: 700, fontSize: 18, color: C.text }}>{title}</div>
+          <button onClick={onClose} style={{ border: "none", background: C.lightPeach, borderRadius: 8, width: 30, height: 30, display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", color: C.textSec }}><X size={16} /></button>
+        </div>
+        {children}
+      </div>
+    </div>
+  );
+}
+
+function Field({ label, children }) {
+  return (
+    <div style={{ marginBottom: 12 }}>
+      <div style={{ fontSize: 11, fontWeight: 700, color: C.textSec, marginBottom: 5, textTransform: "uppercase", letterSpacing: 0.5 }}>{label}</div>
+      {children}
+    </div>
+  );
+}
+
+const inputStyle = {
+  width: "100%", padding: "9px 11px", borderRadius: 9, border: `1px solid ${C.border}`,
+  fontSize: 14, color: C.text, background: C.offWhite, outline: "none", fontFamily: "inherit",
+};
+
+function PrimaryBtn({ children, onClick, style, disabled }) {
+  return (
+    <button onClick={onClick} disabled={disabled} style={{
+      background: disabled ? C.border : C.deepRed, color: C.white, border: "none", borderRadius: 10,
+      padding: "10px 16px", fontWeight: 700, fontSize: 13.5, cursor: disabled ? "not-allowed" : "pointer",
+      letterSpacing: 0.3, ...style,
+    }}>{children}</button>
+  );
+}
+function GhostBtn({ children, onClick, style }) {
+  return (
+    <button onClick={onClick} style={{
+      background: C.white, color: C.text, border: `1px solid ${C.border}`, borderRadius: 10,
+      padding: "10px 16px", fontWeight: 600, fontSize: 13.5, cursor: "pointer", ...style,
+    }}>{children}</button>
+  );
+}
+
+/* ------------------------------- Task modal -------------------------------- */
+
+function TaskModal({ initial, days, onClose, onSave, onDeleteScope }) {
+  const [name, setName] = useState(initial?.name || "");
+  const [category, setCategory] = useState(initial?.category || "SDE Placement");
+  const [priority, setPriority] = useState(initial?.priority || "medium");
+  const [start, setStart] = useState(initial?.start || "09:00");
+  const [end, setEnd] = useState(initial?.end || "10:00");
+  const [notes, setNotes] = useState(initial?.notes || "");
+  const [selDays, setSelDays] = useState(initial?._selDays || [days]);
+  const [dateScoped, setDateScoped] = useState(!!initial?.dateRange);
+  const [rangeStart, setRangeStart] = useState(initial?.dateRange?.start || toISO(new Date()));
+  const [rangeEnd, setRangeEnd] = useState(initial?.dateRange?.end || toISO(addDays(new Date(), 30)));
+  const isEdit = !!initial?.id;
+  const isGrouped = isEdit && !!initial.groupId;
+
+  function toggleDay(d) {
+    setSelDays(s => s.includes(d) ? s.filter(x => x !== d) : [...s, d]);
+  }
+
+  return (
+    <Modal title={isEdit ? "Edit Task" : "New Task"} onClose={onClose}>
+      <Field label="Task Name">
+        <input style={inputStyle} value={name} onChange={e => setName(e.target.value)} placeholder="e.g. DSA — Graphs" />
+      </Field>
+      <div style={{ display: "flex", gap: 10 }}>
+        <div style={{ flex: 1 }}>
+          <Field label="Start"><input type="time" style={inputStyle} value={start} onChange={e => setStart(e.target.value)} /></Field>
+        </div>
+        <div style={{ flex: 1 }}>
+          <Field label="End"><input type="time" style={inputStyle} value={end} onChange={e => setEnd(e.target.value)} /></Field>
+        </div>
+      </div>
+      <div style={{ fontSize: 12, color: C.textSec, marginTop: -6, marginBottom: 12 }}>Duration: {fmtHours(durationHours(start, end))}</div>
+      <div style={{ display: "flex", gap: 10 }}>
+        <div style={{ flex: 1 }}>
+          <Field label="Category">
+            <select style={inputStyle} value={category} onChange={e => setCategory(e.target.value)}>
+              {CATEGORIES.map(c => <option key={c} value={c}>{c}</option>)}
+            </select>
+          </Field>
+        </div>
+        <div style={{ flex: 1 }}>
+          <Field label="Priority">
+            <select style={inputStyle} value={priority} onChange={e => setPriority(e.target.value)}>
+              {PRIORITIES.map(p => <option key={p.key} value={p.key}>{p.emoji} {p.label}</option>)}
+            </select>
+          </Field>
+        </div>
+      </div>
+      <Field label="Notes">
+        <textarea style={{ ...inputStyle, minHeight: 60, resize: "vertical" }} value={notes} onChange={e => setNotes(e.target.value)} placeholder="Optional notes..." />
+      </Field>
+      {!isEdit && (
+        <Field label="Apply to Days">
+          <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
+            {DAYS.map(d => (
+              <button key={d} onClick={() => toggleDay(d)} style={{
+                padding: "6px 10px", borderRadius: 8, fontSize: 12, fontWeight: 700, cursor: "pointer",
+                border: `1px solid ${selDays.includes(d) ? C.deepRed : C.border}`,
+                background: selDays.includes(d) ? C.deepRed : C.white, color: selDays.includes(d) ? C.white : C.text,
+              }}>{DAY_SHORT[d]}</button>
+            ))}
+          </div>
+        </Field>
+      )}
+      <Field label="Active Dates">
+        <label style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 12.5, color: C.text, cursor: "pointer", marginBottom: dateScoped ? 8 : 0 }}>
+          <input type="checkbox" checked={dateScoped} onChange={e => setDateScoped(e.target.checked)} />
+          Only within a specific date range (e.g. just September)
+        </label>
+        {dateScoped && (
+          <div style={{ display: "flex", gap: 10 }}>
+            <div style={{ flex: 1 }}>
+              <div style={{ fontSize: 10.5, color: C.textSec, marginBottom: 4 }}>From</div>
+              <input type="date" style={inputStyle} value={rangeStart} onChange={e => setRangeStart(e.target.value)} />
+            </div>
+            <div style={{ flex: 1 }}>
+              <div style={{ fontSize: 10.5, color: C.textSec, marginBottom: 4 }}>To</div>
+              <input type="date" style={inputStyle} value={rangeEnd} onChange={e => setRangeEnd(e.target.value)} />
+            </div>
+          </div>
+        )}
+      </Field>
+      <div style={{ display: "flex", justifyContent: "space-between", marginTop: 18, gap: 10 }}>
+        <div>
+          {isEdit && (
+            <GhostBtn onClick={() => onDeleteScope(initial)} style={{ color: C.deepRed, borderColor: "#F3C6C6" }}>
+              <span style={{ display: "flex", alignItems: "center", gap: 6 }}><Trash2 size={14} /> Delete</span>
+            </GhostBtn>
+          )}
+        </div>
+        <div style={{ display: "flex", gap: 8 }}>
+          <GhostBtn onClick={onClose}>Cancel</GhostBtn>
+          <PrimaryBtn
+            disabled={!name.trim() || (!isEdit && selDays.length === 0) || (dateScoped && rangeStart > rangeEnd)}
+            onClick={() => onSave({ name: name.trim(), category, priority, start, end, notes, selDays, isGrouped, dateRange: dateScoped ? { start: rangeStart, end: rangeEnd } : null })}
+          >{isEdit ? "Save Changes" : "Add to Timetable"}</PrimaryBtn>
+        </div>
+      </div>
+    </Modal>
+  );
+}
+
+/* ---------------------------- Bulk schedule modal --------------------------- */
+
+function BulkScheduleModal({ onClose, onApply }) {
+  const [selDays, setSelDays] = useState([]);
+  const [name, setName] = useState("");
+  const [start, setStart] = useState("05:00");
+  const [end, setEnd] = useState("06:00");
+  const [category, setCategory] = useState("Personal");
+  const [priority, setPriority] = useState("medium");
+  const [scope, setScope] = useState("recurring"); // recurring | range
+  const defaultBounds = monthBounds(new Date().getFullYear(), new Date().getMonth());
+  const [rangeStart, setRangeStart] = useState(defaultBounds.start);
+  const [rangeEnd, setRangeEnd] = useState(defaultBounds.end);
+  const [monthPreset, setMonthPreset] = useState("custom");
+
+  function toggleDay(d) { setSelDays(s => s.includes(d) ? s.filter(x => x !== d) : [...s, d]); }
+  function preset(p) {
+    if (p === "all") setSelDays([...DAYS]);
+    if (p === "weekdays") setSelDays(["mon", "tue", "wed", "thu", "fri"]);
+    if (p === "weekend") setSelDays(["sun", "sat"]);
+    if (p === "none") setSelDays([]);
+  }
+
+  const monthOptions = ROADMAP.map(r => ({ key: `${r.year}-${r.monthIndex}`, label: `${r.month} ${r.year}`, year: r.year, monthIndex: r.monthIndex }));
+
+  function handleMonthPreset(key) {
+    setMonthPreset(key);
+    if (key === "custom") return;
+    const opt = monthOptions.find(o => o.key === key);
+    if (opt) { const b = monthBounds(opt.year, opt.monthIndex); setRangeStart(b.start); setRangeEnd(b.end); }
+  }
+
+  return (
+    <Modal title="Bulk Schedule" onClose={onClose} wide>
+      <Field label="Scope">
+        <div style={{ display: "flex", background: C.lightPeach, borderRadius: 10, padding: 3, marginBottom: scope === "range" ? 10 : 0 }}>
+          <button onClick={() => setScope("recurring")} style={{
+            flex: 1, border: "none", borderRadius: 8, padding: "8px 10px", fontSize: 12.5, fontWeight: 700, cursor: "pointer",
+            background: scope === "recurring" ? C.deepRed : "transparent", color: scope === "recurring" ? C.white : C.textSec,
+          }}>Every Week</button>
+          <button onClick={() => setScope("range")} style={{
+            flex: 1, border: "none", borderRadius: 8, padding: "8px 10px", fontSize: 12.5, fontWeight: 700, cursor: "pointer",
+            background: scope === "range" ? C.deepRed : "transparent", color: scope === "range" ? C.white : C.textSec,
+          }}>Specific Dates</button>
+        </div>
+        {scope === "range" && (
+          <div style={{ background: C.lightPeach, borderRadius: 10, padding: 10 }}>
+            <div style={{ fontSize: 10.5, color: C.textSec, marginBottom: 4 }}>Jump to month</div>
+            <select style={{ ...inputStyle, marginBottom: 8 }} value={monthPreset} onChange={e => handleMonthPreset(e.target.value)}>
+              <option value="custom">Custom range\u2026</option>
+              {monthOptions.map(o => <option key={o.key} value={o.key}>{o.label}</option>)}
+            </select>
+            <div style={{ display: "flex", gap: 10 }}>
+              <div style={{ flex: 1 }}>
+                <div style={{ fontSize: 10.5, color: C.textSec, marginBottom: 4 }}>From</div>
+                <input type="date" style={inputStyle} value={rangeStart} onChange={e => { setRangeStart(e.target.value); setMonthPreset("custom"); }} />
+              </div>
+              <div style={{ flex: 1 }}>
+                <div style={{ fontSize: 10.5, color: C.textSec, marginBottom: 4 }}>To</div>
+                <input type="date" style={inputStyle} value={rangeEnd} onChange={e => { setRangeEnd(e.target.value); setMonthPreset("custom"); }} />
+              </div>
+            </div>
+          </div>
+        )}
+      </Field>
+      <Field label={scope === "range" ? "Which Days In That Range" : "Select Days"}>
+        <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginBottom: 8 }}>
+          {DAYS.map(d => (
+            <button key={d} onClick={() => toggleDay(d)} style={{
+              padding: "7px 12px", borderRadius: 8, fontSize: 12.5, fontWeight: 700, cursor: "pointer",
+              border: `1px solid ${selDays.includes(d) ? C.deepRed : C.border}`,
+              background: selDays.includes(d) ? C.deepRed : C.white, color: selDays.includes(d) ? C.white : C.text,
+            }}>{DAY_SHORT[d]}</button>
+          ))}
+        </div>
+        <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
+          <Pill onClick={() => preset("all")} style={{ cursor: "pointer" }}>All 7 Days</Pill>
+          <Pill onClick={() => preset("weekdays")} style={{ cursor: "pointer" }}>Weekdays</Pill>
+          <Pill onClick={() => preset("weekend")} style={{ cursor: "pointer" }}>Weekend</Pill>
+          <Pill onClick={() => preset("none")} style={{ cursor: "pointer" }}>Clear</Pill>
+        </div>
+      </Field>
+      <Field label="Task Name">
+        <input style={inputStyle} value={name} onChange={e => setName(e.target.value)} placeholder="e.g. Tea Time ☕" />
+      </Field>
+      <div style={{ display: "flex", gap: 10 }}>
+        <div style={{ flex: 1 }}><Field label="Start"><input type="time" style={inputStyle} value={start} onChange={e => setStart(e.target.value)} /></Field></div>
+        <div style={{ flex: 1 }}><Field label="End"><input type="time" style={inputStyle} value={end} onChange={e => setEnd(e.target.value)} /></Field></div>
+      </div>
+      <div style={{ display: "flex", gap: 10 }}>
+        <div style={{ flex: 1 }}>
+          <Field label="Category">
+            <select style={inputStyle} value={category} onChange={e => setCategory(e.target.value)}>
+              {CATEGORIES.map(c => <option key={c} value={c}>{c}</option>)}
+            </select>
+          </Field>
+        </div>
+        <div style={{ flex: 1 }}>
+          <Field label="Priority">
+            <select style={inputStyle} value={priority} onChange={e => setPriority(e.target.value)}>
+              {PRIORITIES.map(p => <option key={p.key} value={p.key}>{p.emoji} {p.label}</option>)}
+            </select>
+          </Field>
+        </div>
+      </div>
+      <div style={{ fontSize: 12.5, color: C.textSec, background: C.lightPeach, padding: 10, borderRadius: 8, marginTop: 4, marginBottom: 6 }}>
+        Applies <b>{name || "this task"}</b> ({start}–{end}) to <b>{selDays.map(d => DAY_SHORT[d]).join(", ") || "no days yet"}</b>
+        {scope === "range"
+          ? <> only between <b>{fmtDateShort(rangeStart)}</b> and <b>{fmtDateShort(rangeEnd)}</b>.</>
+          : <> every week, indefinitely.</>}
+      </div>
+      <div style={{ display: "flex", justifyContent: "flex-end", gap: 8, marginTop: 14 }}>
+        <GhostBtn onClick={onClose}>Cancel</GhostBtn>
+        <PrimaryBtn
+          disabled={!name.trim() || selDays.length === 0 || (scope === "range" && rangeStart > rangeEnd)}
+          onClick={() => onApply({ name: name.trim(), start, end, category, priority, selDays, dateRange: scope === "range" ? { start: rangeStart, end: rangeEnd } : null })}
+        >Apply to Selected Days</PrimaryBtn>
+      </div>
+    </Modal>
+  );
+}
+
+/* -------------------------------- Task row --------------------------------- */
+
+function TaskRow({ task, dateStr, onToggle, onEdit, onDuplicate, onDelete, timerId, onTimerToggle }) {
+  const done = task.completedDates.includes(dateStr);
+  const pr = PRIORITY_MAP[task.priority] || PRIORITY_MAP.medium;
+  const running = timerId === task.id;
+
+  return (
+    <div style={{
+      display: "flex", alignItems: "center", gap: 10, padding: "11px 12px",
+      background: done ? C.softPeach : C.white, border: `1px solid ${C.border}`,
+      borderLeft: `4px solid ${pr.color}`, borderRadius: 10, marginBottom: 8,
+      transition: "background 0.3s ease", opacity: task.flexible ? 0.85 : 1,
+    }}>
+      <button onClick={() => onToggle(task)} style={{ background: "none", border: "none", cursor: "pointer", padding: 0, color: done ? C.deepRed : C.border, flexShrink: 0 }}>
+        {done ? <CheckCircle2 size={22} /> : <Circle size={22} />}
+      </button>
+
+      <div style={{ minWidth: 90, flexShrink: 0 }}>
+        <div style={{ fontSize: 12, fontWeight: 700, color: C.text, fontFamily: "'JetBrains Mono', monospace" }}>{fmtTime(task.start)}</div>
+        <div style={{ fontSize: 10.5, color: C.textSec, fontFamily: "'JetBrains Mono', monospace" }}>{fmtTime(task.end)}</div>
+      </div>
+
+      <div style={{ flex: 1, minWidth: 0 }}>
+        <div style={{ fontSize: 14, fontWeight: 600, color: C.text, textDecoration: done ? "line-through" : "none", textDecorationColor: C.deepRed, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{task.name}</div>
+        <div style={{ display: "flex", gap: 6, marginTop: 4, flexWrap: "wrap", alignItems: "center" }}>
+          <Pill>{task.category}</Pill>
+          <span style={{ fontSize: 10.5, color: C.textSec, fontFamily: "'JetBrains Mono', monospace" }}>{fmtHours(durationHours(task.start, task.end))}</span>
+          {task.flexible && <span style={{ fontSize: 10.5, color: C.textSec }}>flexible</span>}
+          {task.dateRange && (
+            <Pill style={{ background: C.lightPeach, color: C.textSec, border: `1px solid ${C.border}` }}>
+              {fmtDateShort(task.dateRange.start)} – {fmtDateShort(task.dateRange.end)}
+            </Pill>
+          )}
+        </div>
+      </div>
+
+      <div style={{ display: "flex", gap: 5, flexShrink: 0 }}>
+        <IconBtn title={running ? "Pause timer" : "Start timer"} onClick={() => onTimerToggle(task.id)}>{running ? <Pause size={14} /> : <Play size={14} />}</IconBtn>
+        <IconBtn title="Duplicate" onClick={() => onDuplicate(task)}><Copy size={14} /></IconBtn>
+        <IconBtn title="Edit" onClick={() => onEdit(task)}><Pencil size={14} /></IconBtn>
+        <IconBtn title="Delete" danger onClick={() => onDelete(task)}><Trash2 size={14} /></IconBtn>
+      </div>
+    </div>
+  );
+}
+
+/* --------------------------------- Views ------------------------------------ */
+
+function TodayView({ state, setState, timerId, setTimerId }) {
+  const today = todayObj();
+  const dateStr = toISO(today);
+  const dayKey = dayKeyFor(today);
+  const tasks = state.days[dayKey];
+  const stats = dayStats(state, today);
+  const [modal, setModal] = useState(null);
+  const quote = useMemo(() => MOTIVATION[new Date().getDate() % MOTIVATION.length], []);
+
+  function toggle(task) {
+    setState(s => {
+      const list = s.days[dayKey].map(t => t.id === task.id
+        ? { ...t, completedDates: t.completedDates.includes(dateStr) ? t.completedDates.filter(d => d !== dateStr) : [...t.completedDates, dateStr] }
+        : t);
+      return { ...s, days: { ...s.days, [dayKey]: list } };
+    });
+  }
+  function duplicate(task) {
+    setState(s => {
+      const copy = { ...task, id: uid(), completedDates: [] };
+      return { ...s, days: { ...s.days, [dayKey]: [...s.days[dayKey], copy].sort((a, b) => parseMin(a.start) - parseMin(b.start)) } };
+    });
+  }
+  function del(task) {
+    setState(s => ({ ...s, days: { ...s.days, [dayKey]: s.days[dayKey].filter(t => t.id !== task.id) } }));
+  }
+  function saveEdit(payload) {
+    setState(s => {
+      const list = s.days[dayKey].map(t => t.id === modal.id ? { ...t, ...payload } : t);
+      return { ...s, days: { ...s.days, [dayKey]: list.sort((a, b) => parseMin(a.start) - parseMin(b.start)) } };
+    });
+    setModal(null);
+  }
+
+  const sorted = [...tasks].filter(t => inRange(dateStr, t.dateRange)).sort((a, b) => parseMin(a.start) - parseMin(b.start));
+
+  return (
+    <div>
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 4 }}>
+        <div style={{ fontFamily: "'Space Grotesk', sans-serif", fontWeight: 700, fontSize: 20, color: C.text }}>Today's Mission</div>
+        <button onClick={() => setModal({})} style={{ background: C.deepRed, color: C.white, border: "none", borderRadius: 9, padding: "8px 13px", fontWeight: 700, fontSize: 12.5, cursor: "pointer", display: "flex", alignItems: "center", gap: 6 }}>
+          <Plus size={14} /> Add Task
+        </button>
+      </div>
+      <div style={{ fontSize: 12.5, color: C.textSec, marginBottom: 14, fontStyle: "italic" }}>"{quote}"</div>
+
+      {stats.pct === 100 && stats.total > 0 && (
+        <div style={{ background: `linear-gradient(135deg, ${C.deepRed}, ${C.darkRed})`, color: C.white, borderRadius: 14, padding: "18px 20px", marginBottom: 16 }}>
+          <div style={{ fontFamily: "'Space Grotesk', sans-serif", fontWeight: 800, fontSize: 20 }}>MISSION COMPLETE 🔥</div>
+          <div style={{ fontSize: 13, opacity: 0.9, marginTop: 3 }}>You showed up. Now do it again tomorrow.</div>
+        </div>
+      )}
+
+      {sorted.length === 0 ? (
+        <div style={{ textAlign: "center", padding: "50px 20px", color: C.textSec }}>
+          <div style={{ fontSize: 14 }}>No tasks yet today. Add one — every day counts.</div>
+        </div>
+      ) : sorted.map(t => (
+        <TaskRow key={t.id} task={t} dateStr={dateStr} onToggle={toggle} onEdit={setModal} onDuplicate={duplicate} onDelete={del} timerId={timerId} onTimerToggle={id => setTimerId(cur => cur === id ? null : id)} />
+      ))}
+
+      {modal !== null && (
+        <TaskModal
+          initial={modal.id ? modal : null}
+          days={dayKey}
+          onClose={() => setModal(null)}
+          onDeleteScope={(t) => { del(t); setModal(null); }}
+          onSave={(payload) => {
+            if (modal.id) { saveEdit(payload); return; }
+            setState(s => {
+              const days = { ...s.days };
+              const groupId = payload.selDays.length > 1 ? uid() : null;
+              payload.selDays.forEach(d => {
+                const t = { id: uid(), groupId, start: payload.start, end: payload.end, name: payload.name, category: payload.category, priority: payload.priority, notes: payload.notes, flexible: false, dateRange: payload.dateRange || null, completedDates: [] };
+                days[d] = [...days[d], t].sort((a, b) => parseMin(a.start) - parseMin(b.start));
+              });
+              return { ...s, days };
+            });
+            setModal(null);
+          }}
+        />
+      )}
+    </div>
+  );
+}
+
+function TimetableView({ state, setState }) {
+  const [mode, setMode] = useState("daily"); // daily | weekly | month
+  const [activeDay, setActiveDay] = useState(DAYS[todayObj().getDay()]);
+  const [modal, setModal] = useState(null);
+  const [bulkOpen, setBulkOpen] = useState(false);
+  const today = todayObj();
+
+  function addTask(payload) {
+    setState(s => {
+      const days = { ...s.days };
+      const groupId = payload.selDays.length > 1 ? uid() : null;
+      payload.selDays.forEach(d => {
+        const t = { id: uid(), groupId, start: payload.start, end: payload.end, name: payload.name, category: payload.category, priority: payload.priority, notes: payload.notes, flexible: false, dateRange: payload.dateRange || null, completedDates: [] };
+        days[d] = [...days[d], t].sort((a, b) => parseMin(a.start) - parseMin(b.start));
+      });
+      return { ...s, days };
+    });
+  }
+  function bulkApply(payload) {
+    setState(s => {
+      const days = { ...s.days };
+      const groupId = uid();
+      payload.selDays.forEach(d => {
+        const t = { id: uid(), groupId, start: payload.start, end: payload.end, name: payload.name, category: payload.category, priority: payload.priority, notes: "", flexible: false, dateRange: payload.dateRange || null, completedDates: [] };
+        days[d] = [...days[d], t].sort((a, b) => parseMin(a.start) - parseMin(b.start));
+      });
+      return { ...s, days };
+    });
+    setBulkOpen(false);
+  }
+  function editTask(dayKey, task) { setModal({ dayKey, task }); }
+  function saveEdit(payload) {
+    const { dayKey, task } = modal;
+    setState(s => {
+      const days = { ...s.days };
+      if (payload.isGrouped && payload.scope === "group") {
+        DAYS.forEach(d => {
+          days[d] = days[d].map(t => t.groupId === task.groupId
+            ? { ...t, name: payload.name, category: payload.category, priority: payload.priority, notes: payload.notes, start: payload.start, end: payload.end, dateRange: payload.dateRange || null }
+            : t);
+        });
+      } else {
+        days[dayKey] = days[dayKey].map(t => t.id === task.id ? { ...t, ...payload } : t).sort((a, b) => parseMin(a.start) - parseMin(b.start));
+      }
+      return { ...s, days };
+    });
+    setModal(null);
+  }
+  function deleteTask(dayKey, task) {
+    setState(s => ({ ...s, days: { ...s.days, [dayKey]: s.days[dayKey].filter(t => t.id !== task.id) } }));
+  }
+  function duplicateTask(dayKey, task) {
+    setState(s => ({ ...s, days: { ...s.days, [dayKey]: [...s.days[dayKey], { ...task, id: uid(), completedDates: [], groupId: null }].sort((a, b) => parseMin(a.start) - parseMin(b.start)) } }));
+  }
+  function toggleTask(dayKey, task, dateStr) {
+    setState(s => ({
+      ...s, days: {
+        ...s.days, [dayKey]: s.days[dayKey].map(t => t.id === task.id
+          ? { ...t, completedDates: t.completedDates.includes(dateStr) ? t.completedDates.filter(x => x !== dateStr) : [...t.completedDates, dateStr] }
+          : t)
+      }
+    }));
+  }
+
+  return (
+    <div>
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 14, flexWrap: "wrap", gap: 10 }}>
+        <div style={{ fontFamily: "'Space Grotesk', sans-serif", fontWeight: 700, fontSize: 20, color: C.text }}>Timetable</div>
+        <div style={{ display: "flex", gap: 8 }}>
+          <div style={{ display: "flex", background: C.lightPeach, borderRadius: 10, padding: 3 }}>
+            {["daily", "weekly", "month"].map(m => (
+              <button key={m} onClick={() => setMode(m)} style={{
+                border: "none", borderRadius: 8, padding: "7px 12px", fontSize: 12.5, fontWeight: 700, cursor: "pointer",
+                background: mode === m ? C.deepRed : "transparent", color: mode === m ? C.white : C.textSec, textTransform: "capitalize",
+              }}>{m}</button>
+            ))}
+          </div>
+          <button onClick={() => setBulkOpen(true)} style={{ background: C.darkRed, color: C.white, border: "none", borderRadius: 9, padding: "8px 13px", fontWeight: 700, fontSize: 12.5, cursor: "pointer", display: "flex", alignItems: "center", gap: 6 }}>
+            <LayoutGrid size={14} /> Bulk Schedule
+          </button>
+        </div>
+      </div>
+
+      {mode === "daily" && (
+        <>
+          <div style={{ display: "flex", gap: 6, overflowX: "auto", marginBottom: 14, paddingBottom: 4 }}>
+            {DAYS.map(d => {
+              const isToday = d === DAYS[today.getDay()];
+              return (
+                <button key={d} onClick={() => setActiveDay(d)} style={{
+                  flexShrink: 0, padding: "9px 14px", borderRadius: 10, cursor: "pointer",
+                  border: `1px solid ${activeDay === d ? C.deepRed : C.border}`,
+                  background: activeDay === d ? C.deepRed : C.white, color: activeDay === d ? C.white : C.text,
+                  fontWeight: 700, fontSize: 12.5, position: "relative",
+                }}>
+                  {DAY_SHORT[d]}{isToday && <span style={{ marginLeft: 5, fontSize: 9 }}>●</span>}
+                </button>
+              );
+            })}
+          </div>
+          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 8 }}>
+            <div style={{ fontWeight: 700, color: C.text, fontSize: 15 }}>{DAY_LABEL[activeDay]}</div>
+            <button onClick={() => setModal({ dayKey: activeDay, task: null })} style={{ background: "none", border: `1px solid ${C.border}`, borderRadius: 8, padding: "6px 11px", fontSize: 12, fontWeight: 700, color: C.deepRed, cursor: "pointer", display: "flex", alignItems: "center", gap: 5 }}>
+              <Plus size={13} /> Add Task
+            </button>
+          </div>
+          {state.days[activeDay].length === 0 ? (
+            <div style={{ textAlign: "center", padding: "40px 20px", color: C.textSec, fontSize: 14 }}>No tasks on {DAY_LABEL[activeDay]}. Add one, or use Bulk Schedule.</div>
+          ) : state.days[activeDay].map(t => (
+            <TaskRow key={t.id} task={t} dateStr={toISO(today)} onToggle={() => toggleTask(activeDay, t, toISO(today))} onEdit={() => editTask(activeDay, t)} onDuplicate={() => duplicateTask(activeDay, t)} onDelete={() => deleteTask(activeDay, t)} timerId={null} onTimerToggle={() => {}} />
+          ))}
+        </>
+      )}
+
+      {mode === "weekly" && (
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(7, minmax(150px, 1fr))", gap: 10, overflowX: "auto" }}>
+          {DAYS.map(d => {
+            const s = dayStats(state, addDays(startOfWeek(today), DAYS.indexOf(d)));
+            return (
+              <div key={d} style={{ background: C.white, border: `1px solid ${C.border}`, borderRadius: 12, padding: 10, minWidth: 150 }}>
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
+                  <div style={{ fontWeight: 800, fontSize: 12.5, color: C.text }}>{DAY_SHORT[d].toUpperCase()}</div>
+                  <div style={{ fontSize: 10.5, fontWeight: 700, color: C.deepRed }}>{s.pct}%</div>
+                </div>
+                {state.days[d].sort((a, b) => parseMin(a.start) - parseMin(b.start)).map(t => (
+                  <button key={t.id} onClick={() => editTask(d, t)} style={{
+                    display: "block", width: "100%", textAlign: "left", background: C.lightPeach, border: "none",
+                    borderLeft: `3px solid ${PRIORITY_MAP[t.priority].color}`, borderRadius: 6, padding: "5px 7px", marginBottom: 5, cursor: "pointer",
+                  }}>
+                    <div style={{ fontSize: 10, color: C.textSec, fontFamily: "'JetBrains Mono', monospace" }}>{t.start}</div>
+                    <div style={{ fontSize: 11.5, fontWeight: 600, color: C.text, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{t.name}</div>
+                  </button>
+                ))}
+                <button onClick={() => setModal({ dayKey: d, task: null })} style={{ width: "100%", background: "none", border: `1px dashed ${C.border}`, borderRadius: 6, padding: "5px 0", color: C.textSec, fontSize: 11, cursor: "pointer", marginTop: 2 }}>+ add</button>
+              </div>
+            );
+          })}
+        </div>
+      )}
+
+      {mode === "month" && <MonthHeatmap state={state} />}
+
+      {modal !== null && (
+        <TaskModal
+          initial={modal.task}
+          days={modal.dayKey}
+          onClose={() => setModal(null)}
+          onDeleteScope={(t) => { deleteTask(modal.dayKey, t); setModal(null); }}
+          onSave={(payload) => {
+            if (modal.task) {
+              if (payload.isGrouped) {
+                const scope = window.confirm("This task repeats across other days. Click OK to update ALL days in this series, or Cancel to update only " + DAY_LABEL[modal.dayKey] + ".") ? "group" : "single";
+                saveEdit({ ...payload, scope });
+              } else {
+                saveEdit(payload);
+              }
+            } else {
+              addTask(payload);
+              setModal(null);
+            }
+          }}
+        />
+      )}
+      {bulkOpen && <BulkScheduleModal onClose={() => setBulkOpen(false)} onApply={bulkApply} />}
+    </div>
+  );
+}
+
+function MonthHeatmap({ state }) {
+  const now = new Date();
+  const [monthOffset, setMonthOffset] = useState(0);
+  const view = new Date(now.getFullYear(), now.getMonth() + monthOffset, 1);
+  const year = view.getFullYear(), month = view.getMonth();
+  const firstDay = new Date(year, month, 1);
+  const startOffset = firstDay.getDay();
+  const daysInMonth = new Date(year, month + 1, 0).getDate();
+  const cells = [];
+  for (let i = 0; i < startOffset; i++) cells.push(null);
+  for (let d = 1; d <= daysInMonth; d++) cells.push(new Date(year, month, d));
+
+  function cellColor(pct, total) {
+    if (total === 0) return C.lightPeach;
+    if (pct >= 80) return C.deepRed;
+    if (pct >= 40) return C.strongRed;
+    if (pct > 0) return C.peach;
+    return C.softPeach;
+  }
+
+  return (
+    <div>
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 14, marginBottom: 14 }}>
+        <IconBtn onClick={() => setMonthOffset(o => o - 1)}><ChevronLeft size={15} /></IconBtn>
+        <div style={{ fontWeight: 700, fontSize: 15, color: C.text }}>{view.toLocaleString("en-US", { month: "long", year: "numeric" })}</div>
+        <IconBtn onClick={() => setMonthOffset(o => o + 1)}><ChevronRight size={15} /></IconBtn>
+      </div>
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(7,1fr)", gap: 6, marginBottom: 6 }}>
+        {DAYS.map(d => <div key={d} style={{ textAlign: "center", fontSize: 10.5, fontWeight: 700, color: C.textSec }}>{DAY_SHORT[d].toUpperCase()}</div>)}
+      </div>
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(7,1fr)", gap: 6 }}>
+        {cells.map((d, i) => {
+          if (!d) return <div key={i} />;
+          const s = dayStats(state, d);
+          const isToday = toISO(d) === toISO(now);
+          return (
+            <div key={i} title={`${d.getDate()}: ${s.pct}%`} style={{
+              aspectRatio: "1", borderRadius: 8, background: cellColor(s.pct, s.total),
+              display: "flex", alignItems: "center", justifyContent: "center",
+              border: isToday ? `2px solid ${C.darkRed}` : "1px solid transparent",
+            }}>
+              <span style={{ fontSize: 11, fontWeight: 700, color: s.pct >= 40 && s.total > 0 ? C.white : C.text }}>{d.getDate()}</span>
+            </div>
+          );
+        })}
+      </div>
+      <div style={{ display: "flex", alignItems: "center", gap: 10, marginTop: 14, fontSize: 11, color: C.textSec }}>
+        <span style={{ display: "flex", alignItems: "center", gap: 4 }}><span style={{ width: 10, height: 10, borderRadius: 3, background: C.deepRed, display: "inline-block" }} /> 80%+</span>
+        <span style={{ display: "flex", alignItems: "center", gap: 4 }}><span style={{ width: 10, height: 10, borderRadius: 3, background: C.strongRed, display: "inline-block" }} /> 40–79%</span>
+        <span style={{ display: "flex", alignItems: "center", gap: 4 }}><span style={{ width: 10, height: 10, borderRadius: 3, background: C.peach, display: "inline-block" }} /> 1–39%</span>
+        <span style={{ display: "flex", alignItems: "center", gap: 4 }}><span style={{ width: 10, height: 10, borderRadius: 3, background: C.softPeach, display: "inline-block" }} /> none</span>
+      </div>
+    </div>
+  );
+}
+
+function RoadmapView({ state, setState }) {
+  const now = new Date();
+  const activeIdx = ROADMAP.findIndex(r => r.year === now.getFullYear() && r.monthIndex === now.getMonth());
+
+  function setProgress(month, val) {
+    setState(s => ({ ...s, roadmapProgress: { ...s.roadmapProgress, [month]: val } }));
+  }
+
+  return (
+    <div>
+      <div style={{ fontFamily: "'Space Grotesk', sans-serif", fontWeight: 700, fontSize: 20, color: C.text, marginBottom: 4 }}>Monthly Learning Roadmap</div>
+      <div style={{ fontSize: 12.5, color: C.textSec, marginBottom: 16 }}>Weekday subject vs weekend subject, month by month. Override any day individually in the Timetable.</div>
+      <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+        {ROADMAP.map((r, i) => {
+          const isActive = i === activeIdx;
+          const progress = state.roadmapProgress[r.month] ?? 0;
+          return (
+            <div key={r.month} style={{
+              background: isActive ? `linear-gradient(135deg, ${C.deepRed}, ${C.darkRed})` : C.white,
+              border: `1px solid ${isActive ? C.deepRed : C.border}`, borderRadius: 14, padding: 16,
+              color: isActive ? C.white : C.text,
+            }}>
+              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 10 }}>
+                <div style={{ fontWeight: 800, fontSize: 15, fontFamily: "'Space Grotesk', sans-serif" }}>{r.month.toUpperCase()} {r.year}</div>
+                {isActive && <Pill style={{ background: "rgba(255,255,255,0.2)", color: C.white, border: "1px solid rgba(255,255,255,0.4)" }}>CURRENT</Pill>}
+              </div>
+              <div style={{ display: "flex", gap: 20, marginBottom: 12, flexWrap: "wrap" }}>
+                <div>
+                  <div style={{ fontSize: 10.5, opacity: 0.75, fontWeight: 700, textTransform: "uppercase" }}>Weekdays</div>
+                  <div style={{ fontSize: 14, fontWeight: 700 }}>{r.weekday}</div>
+                </div>
+                <div>
+                  <div style={{ fontSize: 10.5, opacity: 0.75, fontWeight: 700, textTransform: "uppercase" }}>Weekends</div>
+                  <div style={{ fontSize: 14, fontWeight: 700 }}>{r.weekend}</div>
+                </div>
+              </div>
+              <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                <input type="range" min="0" max="100" value={progress} onChange={e => setProgress(r.month, Number(e.target.value))} style={{ flex: 1, accentColor: isActive ? C.white : C.deepRed }} />
+                <span style={{ fontSize: 12.5, fontWeight: 700, minWidth: 34, textAlign: "right" }}>{progress}%</span>
+              </div>
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
+function GoalsView({ state }) {
+  const today = todayObj();
+  const ws = startOfWeek(today);
+  const wk = weekStats(state, ws);
+  const streak = computeStreak(state);
+  const wStreak = weeklyStreakCount(state);
+  const mStreak = Math.floor(wStreak / 4);
+  const best = Math.max(state.bestStreak || 0, streak);
+
+  // weekly review numbers
+  const tasksCompleted = wk.stats.reduce((s, d) => s + d.completed, 0);
+  const tasksTotal = wk.stats.reduce((s, d) => s + d.total, 0);
+  const hoursStudied = wk.stats.reduce((s, d) => s + d.hoursCompleted, 0);
+
+  return (
+    <div>
+      <div style={{ fontFamily: "'Space Grotesk', sans-serif", fontWeight: 700, fontSize: 20, color: C.text, marginBottom: 14 }}>Weekly Goals</div>
+
+      <div style={{ background: C.white, border: `1px solid ${C.border}`, borderRadius: 14, padding: 18, marginBottom: 16 }}>
+        <div style={{ fontWeight: 700, fontSize: 13, color: C.textSec, marginBottom: 12, textTransform: "uppercase", letterSpacing: 0.4 }}>5 + 2 Grace Days</div>
+        <div style={{ display: "flex", gap: 20, flexWrap: "wrap", marginBottom: 14 }}>
+          <div>
+            <div style={{ fontSize: 26, fontWeight: 800, color: C.deepRed, fontFamily: "'Space Grotesk', sans-serif" }}>{wk.primaryMet} / 5</div>
+            <div style={{ fontSize: 11.5, color: C.textSec }}>Weekly Target Days</div>
+          </div>
+          <div>
+            <div style={{ fontSize: 26, fontWeight: 800, color: C.text, fontFamily: "'Space Grotesk', sans-serif" }}>{wk.graceUsed} / 2</div>
+            <div style={{ fontSize: 11.5, color: C.textSec }}>Grace Days Used</div>
+          </div>
+        </div>
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(7,1fr)", gap: 6, marginBottom: 12 }}>
+          {wk.stats.map((s, i) => {
+            const isFuture = s.date > today;
+            const isToday = toISO(s.date) === toISO(today);
+            let bg = C.softPeach, label = "\u2014";
+            if (!isFuture && s.total > 0) {
+              if (s.pct >= 80) { bg = C.deepRed; label = "\u2713"; }
+              else { bg = C.peach; label = "!"; }
+            }
+            return (
+              <div key={i} style={{ textAlign: "center" }}>
+                <div style={{ fontSize: 9.5, color: C.textSec, marginBottom: 4, fontWeight: 700 }}>{DAY_SHORT[DAYS[i]].toUpperCase()}</div>
+                <div style={{ width: "100%", aspectRatio: "1", borderRadius: 8, background: bg, display: "flex", alignItems: "center", justifyContent: "center", border: isToday ? `2px solid ${C.darkRed}` : "none" }}>
+                  <span style={{ fontSize: 13, fontWeight: 800, color: bg === C.deepRed ? C.white : C.text }}>{label}</span>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+        {wk.weekComplete ? (
+          <div style={{ background: C.softPeach, borderRadius: 10, padding: "10px 14px", fontWeight: 800, color: C.deepRed, fontFamily: "'Space Grotesk', sans-serif" }}>WEEK COMPLETE 🔥</div>
+        ) : wk.weekBroken ? (
+          <div style={{ background: "#FDEDEC", borderRadius: 10, padding: "10px 14px", fontWeight: 800, color: C.deepRed }}>GET BACK TO WORK.</div>
+        ) : (
+          <div style={{ fontSize: 12.5, color: C.textSec }}>{wk.missesSoFar > 0 ? "GRACE DAY AVAILABLE — keep going." : "On track. No excuses."}</div>
+        )}
+      </div>
+
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(130px,1fr))", gap: 10, marginBottom: 16 }}>
+        {[
+          { label: "Daily Streak", value: `${streak}`, unit: "days", icon: <Flame size={16} /> },
+          { label: "Weekly Streak", value: `${wStreak}`, unit: "weeks", icon: <TrendingUp size={16} /> },
+          { label: "Monthly Streak", value: `${mStreak}`, unit: "months", icon: <Award size={16} /> },
+          { label: "Best Streak", value: `${best}`, unit: "days", icon: <Trophy size={16} /> },
+        ].map(x => (
+          <div key={x.label} style={{ background: C.white, border: `1px solid ${C.border}`, borderRadius: 12, padding: 13 }}>
+            <div style={{ color: C.deepRed, marginBottom: 6 }}>{x.icon}</div>
+            <div style={{ fontSize: 20, fontWeight: 800, color: C.text, fontFamily: "'Space Grotesk', sans-serif" }}>{x.value} <span style={{ fontSize: 11, color: C.textSec, fontWeight: 600 }}>{x.unit}</span></div>
+            <div style={{ fontSize: 11, color: C.textSec }}>{x.label}</div>
+          </div>
+        ))}
+      </div>
+
+      <div style={{ background: C.white, border: `1px solid ${C.border}`, borderRadius: 14, padding: 18 }}>
+        <div style={{ fontWeight: 700, fontSize: 13, color: C.textSec, marginBottom: 10, textTransform: "uppercase", letterSpacing: 0.4 }}>Weekly Review</div>
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, fontSize: 13.5 }}>
+          <div>Tasks Completed: <b>{tasksCompleted}</b></div>
+          <div>Tasks Missed: <b>{Math.max(0, tasksTotal - tasksCompleted)}</b></div>
+          <div>Grace Days Used: <b>{wk.graceUsed} / 2</b></div>
+          <div>Study Hours: <b>{Math.round(hoursStudied * 10) / 10}</b></div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function WarRoomView({ state, setState }) {
+  const score = readinessScore(state);
+  const wr = state.warRoom;
+  function bump(key, delta) {
+    setState(s => ({ ...s, warRoom: { ...s.warRoom, [key]: Math.max(0, (s.warRoom[key] || 0) + delta) } }));
+  }
+  const counters = [
+    { key: "dsaProblems", label: "DSA Problems Solved" },
+    { key: "mockInterviews", label: "Mock Interviews" },
+    { key: "resumeApplications", label: "Resume Applications" },
+    { key: "interviewCalls", label: "Interview Calls" },
+  ];
+
+  // category hours this week
+  const ws = startOfWeek(todayObj());
+  const catHours = {};
+  DAYS.forEach((d, i) => {
+    const date = addDays(ws, i);
+    if (date > todayObj()) return;
+    const dateStr = toISO(date);
+    state.days[d].forEach(t => {
+      if (t.completedDates.includes(dateStr)) {
+        catHours[t.category] = (catHours[t.category] || 0) + durationHours(t.start, t.end);
+      }
+    });
+  });
+
+  return (
+    <div>
+      <div style={{ fontFamily: "'Space Grotesk', sans-serif", fontWeight: 700, fontSize: 20, color: C.text, marginBottom: 14 }}>SDE Placement War Room</div>
+
+      <div style={{ background: `linear-gradient(135deg, ${C.deepRed}, ${C.darkRed})`, borderRadius: 16, padding: 22, display: "flex", alignItems: "center", gap: 20, marginBottom: 18, flexWrap: "wrap" }}>
+        <ProgressRing pct={score} size={110} stroke={10} label={`${score}`} sub="/ 100" />
+        <div>
+          <div style={{ color: "rgba(255,255,255,0.8)", fontSize: 11, fontWeight: 700, textTransform: "uppercase", letterSpacing: 0.6 }}>SDE Readiness</div>
+          <div style={{ color: C.white, fontSize: 22, fontFamily: "'Space Grotesk', sans-serif", fontWeight: 800 }}>{score >= 80 ? "Interview Ready" : score >= 50 ? "Building Momentum" : "Early Grind"}</div>
+          <div style={{ color: "rgba(255,255,255,0.85)", fontSize: 12.5, marginTop: 4, maxWidth: 320 }}>Weighted from completion consistency, current streak, and War Room activity.</div>
+        </div>
+      </div>
+
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(160px,1fr))", gap: 10, marginBottom: 18 }}>
+        {counters.map(c => (
+          <div key={c.key} style={{ background: C.white, border: `1px solid ${C.border}`, borderRadius: 12, padding: 14 }}>
+            <div style={{ fontSize: 11, color: C.textSec, fontWeight: 700, marginBottom: 8 }}>{c.label}</div>
+            <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+              <button onClick={() => bump(c.key, -1)} style={{ width: 26, height: 26, borderRadius: 7, border: `1px solid ${C.border}`, background: C.lightPeach, cursor: "pointer", fontWeight: 800, color: C.text }}>−</button>
+              <div style={{ fontSize: 20, fontWeight: 800, color: C.deepRed, minWidth: 30, textAlign: "center", fontFamily: "'Space Grotesk', sans-serif" }}>{wr[c.key] || 0}</div>
+              <button onClick={() => bump(c.key, 1)} style={{ width: 26, height: 26, borderRadius: 7, border: `1px solid ${C.border}`, background: C.deepRed, color: C.white, cursor: "pointer", fontWeight: 800 }}>+</button>
+            </div>
+          </div>
+        ))}
+      </div>
+
+      <div style={{ background: C.white, border: `1px solid ${C.border}`, borderRadius: 14, padding: 16 }}>
+        <div style={{ fontWeight: 700, fontSize: 13, color: C.textSec, marginBottom: 10, textTransform: "uppercase", letterSpacing: 0.4 }}>Hours by Category — This Week</div>
+        {Object.keys(catHours).length === 0 ? (
+          <div style={{ fontSize: 12.5, color: C.textSec, padding: "10px 0" }}>Complete tasks this week to see your category breakdown.</div>
+        ) : Object.entries(catHours).sort((a, b) => b[1] - a[1]).map(([cat, h]) => (
+          <div key={cat} style={{ marginBottom: 8 }}>
+            <div style={{ display: "flex", justifyContent: "space-between", fontSize: 12.5, marginBottom: 3 }}>
+              <span style={{ color: C.text, fontWeight: 600 }}>{cat}</span>
+              <span style={{ color: C.textSec, fontFamily: "'JetBrains Mono', monospace" }}>{Math.round(h * 10) / 10}h</span>
+            </div>
+            <div style={{ height: 7, background: C.softPeach, borderRadius: 4, overflow: "hidden" }}>
+              <div style={{ height: "100%", width: `${Math.min(100, h / 20 * 100)}%`, background: C.deepRed }} />
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function AnalyticsView({ state }) {
+  const today = todayObj();
+  const trend = [...Array(7)].map((_, i) => {
+    const d = addDays(today, i - 6);
+    const s = dayStats(state, d);
+    return { day: d.toLocaleDateString("en-US", { weekday: "short" }), pct: s.pct, hours: s.hoursCompleted };
+  });
+
+  const ws = startOfWeek(today);
+  const catHours = {};
+  DAYS.forEach((d, i) => {
+    const date = addDays(ws, i);
+    if (date > today) return;
+    const dateStr = toISO(date);
+    state.days[d].forEach(t => {
+      if (t.completedDates.includes(dateStr)) catHours[t.category] = (catHours[t.category] || 0) + durationHours(t.start, t.end);
+    });
+  });
+  const catData = Object.entries(catHours).map(([name, hours]) => ({ name, hours: Math.round(hours * 10) / 10 })).sort((a, b) => b.hours - a.hours);
+
+  let totalPlanned = 0, totalCompleted = 0, missed = 0, completedCount = 0, graceUsedTotal = 0;
+  const wk = weekStats(state, ws);
+  totalPlanned = wk.stats.reduce((s, d) => s + d.hoursPlanned, 0);
+  totalCompleted = wk.stats.reduce((s, d) => s + d.hoursCompleted, 0);
+  completedCount = wk.stats.reduce((s, d) => s + d.completed, 0);
+  missed = wk.stats.reduce((s, d) => s + (d.total - d.completed), 0);
+  graceUsedTotal = wk.graceUsed;
+
+  return (
+    <div>
+      <div style={{ fontFamily: "'Space Grotesk', sans-serif", fontWeight: 700, fontSize: 20, color: C.text, marginBottom: 14 }}>Analytics</div>
+
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(120px,1fr))", gap: 10, marginBottom: 18 }}>
+        {[
+          { label: "Planned Hrs (wk)", value: Math.round(totalPlanned * 10) / 10 },
+          { label: "Completed Hrs (wk)", value: Math.round(totalCompleted * 10) / 10 },
+          { label: "Tasks Done (wk)", value: completedCount },
+          { label: "Tasks Missed (wk)", value: missed },
+          { label: "Grace Used", value: `${graceUsedTotal}/2` },
+        ].map(x => (
+          <div key={x.label} style={{ background: C.white, border: `1px solid ${C.border}`, borderRadius: 12, padding: 12 }}>
+            <div style={{ fontSize: 18, fontWeight: 800, color: C.deepRed, fontFamily: "'Space Grotesk', sans-serif" }}>{x.value}</div>
+            <div style={{ fontSize: 10.5, color: C.textSec }}>{x.label}</div>
+          </div>
+        ))}
+      </div>
+
+      <div style={{ background: C.white, border: `1px solid ${C.border}`, borderRadius: 14, padding: 16, marginBottom: 16 }}>
+        <div style={{ fontWeight: 700, fontSize: 13, color: C.textSec, marginBottom: 10, textTransform: "uppercase", letterSpacing: 0.4 }}>7-Day Completion Trend</div>
+        <ResponsiveContainer width="100%" height={200}>
+          <LineChart data={trend}>
+            <CartesianGrid strokeDasharray="3 3" stroke={C.border} />
+            <XAxis dataKey="day" tick={{ fontSize: 11, fill: C.textSec }} />
+            <YAxis tick={{ fontSize: 11, fill: C.textSec }} domain={[0, 100]} />
+            <Tooltip contentStyle={{ borderRadius: 8, border: `1px solid ${C.border}`, fontSize: 12 }} />
+            <Line type="monotone" dataKey="pct" stroke={C.deepRed} strokeWidth={2.5} dot={{ r: 3, fill: C.deepRed }} />
+          </LineChart>
+        </ResponsiveContainer>
+      </div>
+
+      <div style={{ background: C.white, border: `1px solid ${C.border}`, borderRadius: 14, padding: 16, marginBottom: 16 }}>
+        <div style={{ fontWeight: 700, fontSize: 13, color: C.textSec, marginBottom: 10, textTransform: "uppercase", letterSpacing: 0.4 }}>Hours by Category — This Week</div>
+        {catData.length === 0 ? <div style={{ fontSize: 12.5, color: C.textSec }}>No completions logged yet this week.</div> : (
+          <ResponsiveContainer width="100%" height={Math.max(160, catData.length * 34)}>
+            <BarChart data={catData} layout="vertical" margin={{ left: 10 }}>
+              <CartesianGrid strokeDasharray="3 3" stroke={C.border} />
+              <XAxis type="number" tick={{ fontSize: 11, fill: C.textSec }} />
+              <YAxis type="category" dataKey="name" width={130} tick={{ fontSize: 11, fill: C.text }} />
+              <Tooltip contentStyle={{ borderRadius: 8, border: `1px solid ${C.border}`, fontSize: 12 }} />
+              <Bar dataKey="hours" fill={C.deepRed} radius={[0, 4, 4, 0]} />
+            </BarChart>
+          </ResponsiveContainer>
+        )}
+      </div>
+
+      <div style={{ background: C.white, border: `1px solid ${C.border}`, borderRadius: 14, padding: 16 }}>
+        <div style={{ fontWeight: 700, fontSize: 13, color: C.textSec, marginBottom: 10, textTransform: "uppercase", letterSpacing: 0.4 }}>Roadmap Progress</div>
+        <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+          {ROADMAP.map(r => {
+            const p = 0; // placeholder pulled via parent if needed
+            return null;
+          })}
+        </div>
+        <div style={{ fontSize: 12, color: C.textSec }}>See the Roadmap tab to update subject completion.</div>
+      </div>
+    </div>
+  );
+}
+
+function SettingsView({ onReset, onExport }) {
+  return (
+    <div>
+      <div style={{ fontFamily: "'Space Grotesk', sans-serif", fontWeight: 700, fontSize: 20, color: C.text, marginBottom: 14 }}>Settings</div>
+      <div style={{ background: C.white, border: `1px solid ${C.border}`, borderRadius: 14, padding: 18, marginBottom: 12 }}>
+        <div style={{ fontWeight: 700, fontSize: 14, marginBottom: 4 }}>Data & Persistence</div>
+        <div style={{ fontSize: 12.5, color: C.textSec, marginBottom: 12 }}>Every task, streak and completion is saved automatically and stays after you refresh.</div>
+        <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+          <GhostBtn onClick={onExport}><span style={{ display: "flex", alignItems: "center", gap: 6 }}><Download size={14} /> Export Data (JSON)</span></GhostBtn>
+          <GhostBtn onClick={onReset} style={{ color: C.deepRed, borderColor: "#F3C6C6" }}><span style={{ display: "flex", alignItems: "center", gap: 6 }}><RotateCcw size={14} /> Reset to Default Template</span></GhostBtn>
+        </div>
+      </div>
+      <div style={{ background: C.white, border: `1px solid ${C.border}`, borderRadius: 14, padding: 18 }}>
+        <div style={{ fontWeight: 700, fontSize: 14, marginBottom: 4 }}>About</div>
+        <div style={{ fontSize: 12.5, color: C.textSec, lineHeight: 1.6 }}>
+          DO OR DIE is your personal SDE placement mission control. No excuses. No zero days. Get the SDE offer.
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/* --------------------------------- App shell -------------------------------- */
+
+const NAV = [
+  { key: "today", label: "Today", icon: ListChecks },
+  { key: "timetable", label: "Timetable", icon: LayoutGrid },
+  { key: "roadmap", label: "Roadmap", icon: MapIcon },
+  { key: "goals", label: "Goals", icon: Target },
+  { key: "warroom", label: "War Room", icon: Swords },
+  { key: "analytics", label: "Analytics", icon: BarChart3 },
+  { key: "settings", label: "Settings", icon: SettingsIcon },
+];
+const MOBILE_PRIMARY = ["today", "timetable", "goals", "roadmap"];
+
+export default function App() {
+  const [state, setState] = useState(null);
+  const [view, setView] = useState("today");
+  const [moreOpen, setMoreOpen] = useState(false);
+  const [timerId, setTimerId] = useState(null);
+  const loaded = useRef(false);
+
+  useEffect(() => {
+    (async () => {
+      const s = await loadState();
+      setState(s || seedState());
+      loaded.current = true;
+    })();
+  }, []);
+
+  useEffect(() => {
+    if (!state || !loaded.current) return;
+    const streak = computeStreak(state);
+    if (streak > (state.bestStreak || 0)) {
+      setState(s => ({ ...s, bestStreak: streak }));
+      return;
+    }
+    const t = setTimeout(() => saveState(state), 350);
+    return () => clearTimeout(t);
+  }, [state]);
+
+  if (!state) {
+    return (
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "center", height: 300, color: C.textSec, fontFamily: "Inter, sans-serif" }}>
+        Loading mission control...
+      </div>
+    );
+  }
+
+  const today = todayObj();
+  const stats = dayStats(state, today);
+  const streak = computeStreak(state);
+  const ws = startOfWeek(today);
+  const wk = weekStats(state, ws);
+  const weeklyPct = Math.round((wk.hits / 5) * 100) > 100 ? 100 : Math.round((wk.hits / 5) * 100);
+
+  function reset() {
+    if (window.confirm("Reset all tasks and progress to the default template? This cannot be undone.")) {
+      setState(seedState());
+    }
+  }
+  function exportData() {
+    const blob = new Blob([JSON.stringify(state, null, 2)], { type: "application/json" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url; a.download = "do-or-die-data.json"; a.click();
+    URL.revokeObjectURL(url);
+  }
+
+  const viewProps = { state, setState };
+
+  return (
+    <div style={{ fontFamily: "'Inter', sans-serif", background: C.offWhite, minHeight: "100%", color: C.text }}>
+      <style>{`
+        @import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;700;800&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@500;700&display=swap');
+        * { box-sizing: border-box; }
+        input[type=time]::-webkit-calendar-picker-indicator { filter: invert(0.3) sepia(1) saturate(4) hue-rotate(-20deg); }
+        ::-webkit-scrollbar { height: 6px; width: 6px; }
+        ::-webkit-scrollbar-thumb { background: ${C.peach}; border-radius: 4px; }
+      `}</style>
+
+      <div style={{ display: "flex", maxWidth: 1200, margin: "0 auto" }}>
+        {/* Desktop sidebar */}
+        <div className="dod-sidebar" style={{ width: 220, flexShrink: 0, borderRight: `1px solid ${C.border}`, minHeight: "100vh", padding: "22px 14px", display: "none" }}>
+          <div style={{ padding: "0 8px 18px 8px" }}>
+            <div style={{ fontFamily: "'Space Grotesk', sans-serif", fontWeight: 800, fontSize: 22, color: C.deepRed, letterSpacing: -0.5 }}>DO OR DIE</div>
+            <div style={{ fontSize: 10.5, color: C.textSec, marginTop: 2, lineHeight: 1.4 }}>No excuses. No zero days.<br />Get the SDE offer.</div>
+          </div>
+          <HazardBar height={4} />
+          <div style={{ marginTop: 16, display: "flex", flexDirection: "column", gap: 3 }}>
+            {NAV.map(n => {
+              const Icon = n.icon;
+              const active = view === n.key;
+              return (
+                <button key={n.key} onClick={() => setView(n.key)} style={{
+                  display: "flex", alignItems: "center", gap: 10, padding: "9px 12px", borderRadius: 9,
+                  border: "none", background: active ? C.deepRed : "transparent", color: active ? C.white : C.text,
+                  fontWeight: 600, fontSize: 13.5, cursor: "pointer", textAlign: "left",
+                }}>
+                  <Icon size={16} /> {n.label}
+                </button>
+              );
+            })}
+          </div>
+          <div style={{ marginTop: 24, padding: 12, background: C.softPeach, borderRadius: 12 }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 6, color: C.deepRed, fontWeight: 800, fontSize: 13 }}><Flame size={15} /> {streak} DAY STREAK</div>
+            <div style={{ fontSize: 11, color: C.textSec, marginTop: 4 }}>{stats.pct}% today · {stats.hoursCompleted}/{stats.hoursPlanned}h</div>
+          </div>
+        </div>
+
+        {/* Main column */}
+        <div style={{ flex: 1, minWidth: 0 }}>
+          {/* Header */}
+          <div style={{ background: C.white, borderBottom: `1px solid ${C.border}`, padding: "18px 18px 0 18px" }}>
+            <div className="dod-mobile-logo" style={{ display: "flex", fontFamily: "'Space Grotesk', sans-serif", fontWeight: 800, fontSize: 20, color: C.deepRed, letterSpacing: -0.5, marginBottom: 2 }}>DO OR DIE</div>
+            <div className="dod-mobile-tag" style={{ display: "block", fontSize: 11, color: C.textSec, marginBottom: 12 }}>No excuses. No zero days. Get the SDE offer.</div>
+
+            <div style={{ display: "flex", flexWrap: "wrap", gap: 16, alignItems: "flex-end", paddingBottom: 16 }}>
+              <div>
+                <div style={{ fontSize: 11, fontWeight: 700, color: C.textSec, letterSpacing: 0.5 }}>{today.toLocaleDateString("en-US", { weekday: "long" }).toUpperCase()}</div>
+                <div style={{ fontFamily: "'Space Grotesk', sans-serif", fontWeight: 800, fontSize: 24, color: C.text }}>{today.toLocaleDateString("en-US", { month: "long", day: "numeric" })}</div>
+              </div>
+              <div style={{ display: "flex", alignItems: "center", gap: 6, background: C.softPeach, padding: "6px 12px", borderRadius: 10 }}>
+                <Flame size={16} color={C.deepRed} />
+                <span style={{ fontWeight: 800, color: C.deepRed, fontSize: 14 }}>{streak} DAY STREAK</span>
+              </div>
+              <div style={{ minWidth: 140 }}>
+                <div style={{ fontSize: 10.5, color: C.textSec, fontWeight: 700 }}>TODAY'S PROGRESS</div>
+                <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                  <div style={{ flex: 1, height: 8, background: C.softPeach, borderRadius: 5, overflow: "hidden" }}>
+                    <div style={{ height: "100%", width: `${stats.pct}%`, background: C.deepRed, transition: "width 0.5s ease" }} />
+                  </div>
+                  <span style={{ fontWeight: 700, fontSize: 13, color: C.text }}>{stats.pct}%</span>
+                </div>
+                <div style={{ fontSize: 10.5, color: C.textSec, marginTop: 2, fontFamily: "'JetBrains Mono', monospace" }}>{stats.hoursCompleted} / {stats.hoursPlanned} planned hours</div>
+              </div>
+              <div style={{ minWidth: 130 }}>
+                <div style={{ fontSize: 10.5, color: C.textSec, fontWeight: 700 }}>WEEKLY PROGRESS</div>
+                <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                  <div style={{ flex: 1, height: 8, background: C.softPeach, borderRadius: 5, overflow: "hidden" }}>
+                    <div style={{ height: "100%", width: `${weeklyPct}%`, background: C.darkRed }} />
+                  </div>
+                  <span style={{ fontWeight: 700, fontSize: 13, color: C.text }}>{wk.hits}/5</span>
+                </div>
+              </div>
+            </div>
+          </div>
+          <HazardBar height={4} />
+
+          {/* View content */}
+          <div style={{ padding: 18, paddingBottom: 90 }}>
+            {view === "today" && <TodayView state={state} setState={setState} timerId={timerId} setTimerId={setTimerId} />}
+            {view === "timetable" && <TimetableView {...viewProps} />}
+            {view === "roadmap" && <RoadmapView {...viewProps} />}
+            {view === "goals" && <GoalsView {...viewProps} />}
+            {view === "warroom" && <WarRoomView {...viewProps} />}
+            {view === "analytics" && <AnalyticsView {...viewProps} />}
+            {view === "settings" && <SettingsView onReset={reset} onExport={exportData} />}
+          </div>
+        </div>
+      </div>
+
+      {/* Mobile bottom nav */}
+      <div className="dod-bottomnav" style={{
+        position: "fixed", left: 0, right: 0, bottom: 0, background: C.white, borderTop: `1px solid ${C.border}`,
+        display: "flex", padding: "6px 4px", zIndex: 50, boxShadow: "0 -4px 14px rgba(0,0,0,0.06)",
+      }}>
+        {MOBILE_PRIMARY.map(k => {
+          const n = NAV.find(x => x.key === k);
+          const Icon = n.icon;
+          const active = view === k;
+          return (
+            <button key={k} onClick={() => { setView(k); setMoreOpen(false); }} style={{
+              flex: 1, display: "flex", flexDirection: "column", alignItems: "center", gap: 3, padding: "6px 0",
+              background: "none", border: "none", color: active ? C.deepRed : C.textSec, cursor: "pointer",
+            }}>
+              <Icon size={19} />
+              <span style={{ fontSize: 9.5, fontWeight: 700 }}>{n.label}</span>
+            </button>
+          );
+        })}
+        <button onClick={() => setMoreOpen(true)} style={{
+          flex: 1, display: "flex", flexDirection: "column", alignItems: "center", gap: 3, padding: "6px 0",
+          background: "none", border: "none", color: ["warroom", "analytics", "settings"].includes(view) ? C.deepRed : C.textSec, cursor: "pointer",
+        }}>
+          <MoreHorizontal size={19} />
+          <span style={{ fontSize: 9.5, fontWeight: 700 }}>More</span>
+        </button>
+      </div>
+
+      {moreOpen && (
+        <div style={{ position: "fixed", inset: 0, background: "rgba(23,23,23,0.5)", zIndex: 99 }} onClick={() => setMoreOpen(false)}>
+          <div onClick={e => e.stopPropagation()} style={{ position: "absolute", bottom: 0, left: 0, right: 0, background: C.white, borderRadius: "16px 16px 0 0", padding: 16 }}>
+            {["warroom", "analytics", "settings"].map(k => {
+              const n = NAV.find(x => x.key === k);
+              const Icon = n.icon;
+              return (
+                <button key={k} onClick={() => { setView(k); setMoreOpen(false); }} style={{
+                  width: "100%", display: "flex", alignItems: "center", gap: 12, padding: "13px 10px",
+                  background: "none", border: "none", borderBottom: `1px solid ${C.border}`, cursor: "pointer",
+                  color: C.text, fontWeight: 600, fontSize: 14.5, textAlign: "left",
+                }}><Icon size={18} color={C.deepRed} /> {n.label}</button>
+              );
+            })}
+          </div>
+        </div>
+      )}
+
+      <style>{`
+        @media (min-width: 900px) {
+          .dod-sidebar { display: block !important; }
+          .dod-bottomnav { display: none !important; }
+          .dod-mobile-logo, .dod-mobile-tag { display: none !important; }
+        }
+      `}</style>
+    </div>
+  );
+}
