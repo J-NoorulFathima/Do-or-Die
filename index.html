@@ -1585,10 +1585,25 @@ function applyBulkModal(){
   });
   closeModals();
   commit();
-  // Jump the Timetable view to the first day/date affected, so the user immediately sees it reflected.
+  // Jump the Timetable view to the first day/date actually affected, so the user immediately sees it reflected.
   ui.view="timetable"; ui.ttMode="daily";
   if(m.scope==='range'){
-    ui.ttActiveDate = m.rangeStart;
+    // FIX: don't just jump to rangeStart — it may fall on a weekday the user
+    // never selected (e.g. range starts on a Monday but only "Thu" was picked),
+    // which made it look like the bulk schedule "didn't apply" anything.
+    // Instead, scan forward from rangeStart to the first date inside the
+    // range whose weekday is actually one of the selected days.
+    const rs = new Date(m.rangeStart+"T00:00:00");
+    const re = new Date(m.rangeEnd+"T00:00:00");
+    let found = null;
+    let d = new Date(rs);
+    let guard = 0;
+    while(d <= re && guard < 400){
+      if(m.selDays.includes(dayKeyFor(d))){ found = toISO(d); break; }
+      d = addDays(d,1);
+      guard++;
+    }
+    ui.ttActiveDate = found || m.rangeStart;
   } else {
     const todayD = todayObj();
     const targetDay = m.selDays[0];
