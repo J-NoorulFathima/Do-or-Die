@@ -218,6 +218,22 @@
         "completedDates": []
       },
       {
+        "id": "az980umt04ai",
+        "groupId": "smr14kgp04ai",
+        "start": "18:00",
+        "end": "19:30",
+        "name": "SRM - ASSESSMENTS (week : 10 - 15)",
+        "category": "Assessment",
+        "priority": "high",
+        "notes": "",
+        "flexible": false,
+        "dateRange": {
+          "start": "2026-10-01",
+          "end": "2026-10-30"
+        },
+        "completedDates": []
+      },
+      {
         "id": "kw9c6gvpvk9l",
         "groupId": "npmzq3n0vk9l",
         "start": "19:30",
