@@ -388,6 +388,125 @@ async function requestPersistentStorage(){
   }catch(e){ /* not supported in this browser, ignore */ }
 }
 
+/* ============================= GitHub sync ============================= */
+const GH_CONFIG_KEY = "do-or-die-github-config-v1";
+
+/* GitHub config (token, owner, repo, path, branch) is always stored the same
+   way local device settings are — never inside `state`, so the token is never
+   included in the JSON that actually gets pushed up to the repo. */
+async function loadGithubConfig(){
+  if(hasClaudeStorage){
+    try{ const res=await window.storage.get(GH_CONFIG_KEY,false); if(res && res.value) return JSON.parse(res.value); }
+    catch(e){ /* not found */ }
+    return null;
+  }
+  try{ const raw=localStorage.getItem(GH_CONFIG_KEY); return raw?JSON.parse(raw):null; }
+  catch(e){ return null; }
+}
+async function saveGithubConfig(){
+  const cfg=ui.github;
+  const toSave={token:cfg.token,owner:cfg.owner,repo:cfg.repo,path:cfg.path,branch:cfg.branch,autoSync:cfg.autoSync,sha:cfg.sha,lastSyncedAt:cfg.lastSyncedAt};
+  if(hasClaudeStorage){
+    try{ await window.storage.set(GH_CONFIG_KEY, JSON.stringify(toSave), false); } catch(e){ /* ignore */ }
+    return;
+  }
+  try{ localStorage.setItem(GH_CONFIG_KEY, JSON.stringify(toSave)); } catch(e){ /* ignore */ }
+}
+
+function ghHeaders(token){
+  return { "Authorization": `Bearer ${token}`, "Accept":"application/vnd.github+json", "X-GitHub-Api-Version":"2022-11-28" };
+}
+function ghEncodePath(path){ return String(path||"").split("/").filter(Boolean).map(encodeURIComponent).join("/"); }
+function b64EncodeUnicode(str){ return btoa(unescape(encodeURIComponent(str))); }
+function b64DecodeUnicode(str){ return decodeURIComponent(escape(atob(str))); }
+
+async function githubFetchFile(cfg){
+  const url=`https://api.github.com/repos/${encodeURIComponent(cfg.owner)}/${encodeURIComponent(cfg.repo)}/contents/${ghEncodePath(cfg.path)}?ref=${encodeURIComponent(cfg.branch||"main")}`;
+  const res=await fetch(url,{headers:ghHeaders(cfg.token)});
+  if(res.status===404) return {exists:false};
+  if(!res.ok){ const t=await res.text().catch(()=>""); throw new Error(`GitHub read failed (${res.status}). ${t.slice(0,180)}`); }
+  const data=await res.json();
+  const content=b64DecodeUnicode((data.content||"").replace(/\n/g,""));
+  return {exists:true, sha:data.sha, content};
+}
+async function githubPutFile(cfg,contentStr,sha,message){
+  const url=`https://api.github.com/repos/${encodeURIComponent(cfg.owner)}/${encodeURIComponent(cfg.repo)}/contents/${ghEncodePath(cfg.path)}`;
+  const body={ message: message||`DO OR DIE sync — ${new Date().toISOString()}`, content:b64EncodeUnicode(contentStr), branch: cfg.branch||"main" };
+  if(sha) body.sha=sha;
+  const res=await fetch(url,{method:"PUT",headers:{...ghHeaders(cfg.token),"Content-Type":"application/json"},body:JSON.stringify(body)});
+  if(!res.ok){ const t=await res.text().catch(()=>""); throw new Error(`GitHub write failed (${res.status}). ${t.slice(0,240)}`); }
+  return await res.json();
+}
+
+function ghConfigReady(){ const c=ui.github; return !!(c.token && c.owner && c.repo); }
+function setGithubStatus(status,message){
+  ui.github.status=status; ui.github.message=message;
+  updateGithubStatusUI();
+}
+function updateGithubStatusUI(){
+  const el=document.getElementById("gh-status");
+  if(el) el.innerHTML=ghStatusHTML();
+}
+function timeAgo(ts){
+  if(!ts) return "";
+  const s=Math.floor((Date.now()-ts)/1000);
+  if(s<60) return "just now";
+  const m=Math.floor(s/60); if(m<60) return `${m}m ago`;
+  const h=Math.floor(m/60); if(h<24) return `${h}h ago`;
+  const d=Math.floor(h/24); return `${d}d ago`;
+}
+function ghStatusHTML(){
+  const cfg=ui.github;
+  if(cfg.status==="syncing") return `<span style="color:${C.textSec};">${esc(cfg.message||"Syncing…")}</span>`;
+  if(cfg.status==="error") return `<span style="color:${C.deepRed};font-weight:700;">${esc(cfg.message||"Something went wrong.")}</span>`;
+  if(cfg.lastSyncedAt) return `<span style="color:${C.textSec};">${esc(cfg.message||"Synced")} · last synced ${timeAgo(cfg.lastSyncedAt)}</span>`;
+  return `<span style="color:${C.textSec};">Not synced yet.</span>`;
+}
+
+async function pushToGithub(){
+  const cfg=ui.github;
+  if(!ghConfigReady()){ setGithubStatus("error","Add a token, owner and repo first."); return; }
+  setGithubStatus("syncing","Pushing to GitHub…");
+  try{
+    let sha=cfg.sha;
+    if(!sha){
+      const existing=await githubFetchFile(cfg);
+      if(existing.exists) sha=existing.sha;
+    }
+    const result=await githubPutFile(cfg, JSON.stringify(state,null,2), sha, "DO OR DIE: sync progress");
+    cfg.sha=result.content.sha;
+    cfg.lastSyncedAt=Date.now();
+    setGithubStatus("synced","Pushed to GitHub");
+    await saveGithubConfig();
+  }catch(err){
+    setGithubStatus("error", err.message||"Push failed.");
+  }
+}
+async function pullFromGithub(){
+  const cfg=ui.github;
+  if(!ghConfigReady()){ setGithubStatus("error","Add a token, owner and repo first."); return; }
+  setGithubStatus("syncing","Pulling from GitHub…");
+  try{
+    const existing=await githubFetchFile(cfg);
+    if(!existing.exists){ setGithubStatus("error","No file there yet — push first to create it."); return; }
+    const parsed=JSON.parse(existing.content);
+    state=parsed;
+    cfg.sha=existing.sha;
+    cfg.lastSyncedAt=Date.now();
+    await saveState(state);
+    await saveGithubConfig();
+    setGithubStatus("synced","Pulled from GitHub");
+    render();
+  }catch(err){
+    setGithubStatus("error", "Pull failed: "+(err.message||"unknown error"));
+  }
+}
+function scheduleGithubAutoSync(){
+  if(!ui.github.autoSync || !ghConfigReady()) return;
+  clearTimeout(ui.github.timer);
+  ui.github.timer=setTimeout(()=>{ pushToGithub(); }, 4000);
+}
+
 /* ============================= icons ============================= */
 const ICON_PATHS = {
   plus:'<path d="M12 5v14M5 12h14"/>',
@@ -430,6 +549,10 @@ let ui = {
   ttMode:"daily",
   ttActiveDay:DAYS[todayObj().getDay()],
   monthOffset:0,
+  github:{
+    token:"", owner:"", repo:"", path:"do-or-die-data.json", branch:"main",
+    autoSync:false, status:"idle", message:"", lastSyncedAt:null, sha:null, timer:null,
+  },
 };
 let taskModal = null;   // {mode:'today'|'timetable', dayKey, task, selDays, dateScoped, rangeStart, rangeEnd}
 let bulkModal = null;   // {selDays, scope, rangeStart, rangeEnd, monthPreset}
@@ -452,6 +575,7 @@ async function persistAndRender(){
   if(streak > (state.bestStreak||0)) state.bestStreak = streak;
   render();
   await saveState(state);
+  scheduleGithubAutoSync();
 }
 function findTask(dayKey,id){ return state.days[dayKey].find(t=>t.id===id); }
 function sortDay(dayKey){ state.days[dayKey].sort((a,b)=>parseMin(a.start)-parseMin(b.start)); }
@@ -908,10 +1032,47 @@ function renderSettings(){
       <button class="btn-ghost" data-action="resetData" style="color:${C.deepRed};border-color:#F3C6C6;">${ic('rotateCcw',14)} Reset to Default Template</button>
     </div>
   </div>
+  <div class="card" style="margin-bottom:12px;">
+    ${renderGithubSyncCard()}
+  </div>
   <div class="card">
     <div style="font-weight:700;font-size:14px;margin-bottom:4px;">About</div>
     <div style="font-size:12.5px;color:${C.textSec};line-height:1.6;">DO OR DIE is your personal SDE placement mission control. No excuses. No zero days. Get the SDE offer.</div>
   </div>`;
+}
+
+function renderGithubSyncCard(){
+  const cfg=ui.github;
+  return `
+  <div style="font-weight:700;font-size:14px;margin-bottom:4px;">GitHub Sync</div>
+  <div style="font-size:12.5px;color:${C.textSec};margin-bottom:12px;">
+    Push this tracker's data (tasks, done-ticks, streaks, War Room counters) to a JSON file in a GitHub repo, so it's backed up off-device and can be pulled onto another browser or device.
+    Your token is only ever stored in this browser${hasClaudeStorage?" (synced privately to your Claude account, never shared)":""} — it is never written into the synced file. The repo can be private.
+  </div>
+  <div class="field">
+    <div class="field-label">Personal Access Token</div>
+    <input class="input" type="password" id="gh-token" value="${esc(cfg.token)}" placeholder="ghp_... (needs 'repo' or 'contents:write' scope)" oninput="ui.github.token=this.value">
+  </div>
+  <div class="row-2">
+    <div><div class="field-label">Owner</div><input class="input" id="gh-owner" value="${esc(cfg.owner)}" placeholder="your-github-username" oninput="ui.github.owner=this.value"></div>
+    <div><div class="field-label">Repo</div><input class="input" id="gh-repo" value="${esc(cfg.repo)}" placeholder="do-or-die-data" oninput="ui.github.repo=this.value"></div>
+  </div>
+  <div class="row-2">
+    <div><div class="field-label">File Path</div><input class="input" id="gh-path" value="${esc(cfg.path)}" oninput="ui.github.path=this.value"></div>
+    <div><div class="field-label">Branch</div><input class="input" id="gh-branch" value="${esc(cfg.branch)}" oninput="ui.github.branch=this.value"></div>
+  </div>
+  <label style="display:flex;align-items:center;gap:8px;font-size:12.5px;color:${C.text};cursor:pointer;margin:8px 0 12px 0;">
+    <input type="checkbox" ${cfg.autoSync?"checked":""} onchange="ui.github.autoSync=this.checked; saveGithubConfig();">
+    Auto-push a few seconds after every change (ticking a task, editing, etc.)
+  </label>
+  <div id="gh-status" style="font-size:12px;margin-bottom:10px;">${ghStatusHTML()}</div>
+  <div style="display:flex;gap:8px;flex-wrap:wrap;">
+    <button class="btn-ghost" data-action="ghSaveConfig">Save Settings</button>
+    <button class="btn-primary" data-action="ghPush">${ic('download',14,'#fff')} Push Now</button>
+    <button class="btn-dark" data-action="ghPull">${ic('rotateCcw',14,'#fff')} Pull Latest</button>
+  </div>
+  <div class="hint-box" style="margin-top:12px;">Push writes your current in-app data to GitHub, overwriting what's there. Pull replaces your in-app data with whatever is currently in the GitHub file. Use Push after you make changes on this device; use Pull when opening on another device to grab the latest.</div>
+  `;
 }
 
 /* ============================= App shell ============================= */
@@ -1052,6 +1213,20 @@ function handleAction(action,ds,e,el){
     }
 
     case "openBulk": openBulkModal(); break;
+
+    case "ghSaveConfig": {
+      const ids=["gh-token","gh-owner","gh-repo","gh-path","gh-branch"];
+      const map={"gh-token":"token","gh-owner":"owner","gh-repo":"repo","gh-path":"path","gh-branch":"branch"};
+      ids.forEach(id=>{ const el=document.getElementById(id); if(el) ui.github[map[id]]=el.value.trim(); });
+      saveGithubConfig();
+      setGithubStatus("idle","Settings saved.");
+      break;
+    }
+    case "ghPush": pushToGithub(); break;
+    case "ghPull": {
+      if(confirm("Pull will replace everything currently in this app with what's saved on GitHub. Continue?")) pullFromGithub();
+      break;
+    }
 
     case "exportData": exportData(); break;
     case "resetData": {
@@ -1344,6 +1519,8 @@ function renderModals(){
   await requestPersistentStorage();
   const loaded = await loadState();
   state = loaded || seedState();
+  const ghCfg = await loadGithubConfig();
+  if(ghCfg) Object.assign(ui.github, ghCfg);
   attachGlobalListeners();
   render();
 })();
