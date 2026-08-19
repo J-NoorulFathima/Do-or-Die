@@ -1350,6 +1350,7 @@ function handleAction(action,ds,e,el){
       if(p==="weekdays") bulkModal.selDays=["mon","tue","wed","thu","fri"];
       if(p==="weekend") bulkModal.selDays=["sun","sat"];
       if(p==="none") bulkModal.selDays=[];
+      if(bulkModal.errors && bulkModal.selDays.length>0) delete bulkModal.errors.days;
       renderModals();
       break;
     }
@@ -1357,6 +1358,7 @@ function handleAction(action,ds,e,el){
       const d=ds.day;
       const i=bulkModal.selDays.indexOf(d);
       if(i>=0) bulkModal.selDays.splice(i,1); else bulkModal.selDays.push(d);
+      if(bulkModal.errors && bulkModal.selDays.length>0) delete bulkModal.errors.days;
       renderModals();
       break;
     }
@@ -1489,6 +1491,7 @@ function openBulkModal(){
   bulkModal={
     selDays:[], name:"", start:"05:00", end:"06:00", category:"Personal", priority:"medium",
     scope:"recurring", rangeStart:db.start, rangeEnd:db.end, monthPreset:"custom",
+    errors:{},
   };
   renderModals();
 }
@@ -1520,15 +1523,16 @@ function bulkModalHTML(){
             ${monthOptions.map(o=>`<option value="${o.key}" ${m.monthPreset===o.key?'selected':''}>${o.label}</option>`).join("")}
           </select>
           <div class="row-2">
-            <div><div style="font-size:10.5px;color:${C.textSec};margin-bottom:4px;">From</div><input type="date" class="input" value="${m.rangeStart}" oninput="bulkModal.rangeStart=this.value; bulkModal.monthPreset='custom';"></div>
-            <div><div style="font-size:10.5px;color:${C.textSec};margin-bottom:4px;">To</div><input type="date" class="input" value="${m.rangeEnd}" oninput="bulkModal.rangeEnd=this.value; bulkModal.monthPreset='custom';"></div>
+            <div><div style="font-size:10.5px;color:${C.textSec};margin-bottom:4px;">From</div><input type="date" class="input" value="${m.rangeStart}" oninput="bulkModal.rangeStart=this.value; bulkModal.monthPreset='custom';" style="${m.errors&&m.errors.range?`border-color:${C.deepRed};`:''}"></div>
+            <div><div style="font-size:10.5px;color:${C.textSec};margin-bottom:4px;">To</div><input type="date" class="input" value="${m.rangeEnd}" oninput="bulkModal.rangeEnd=this.value; bulkModal.monthPreset='custom';" style="${m.errors&&m.errors.range?`border-color:${C.deepRed};`:''}"></div>
           </div>
+          ${m.errors&&m.errors.range?`<div style="font-size:11.5px;color:${C.deepRed};font-weight:600;margin-top:6px;">${esc(m.errors.range)}</div>`:""}
         </div>`:""}
       </div>
       <div class="field">
         <div class="field-label">${m.scope==='range'?'Which Days In That Range':'Select Days'}</div>
         <div class="chip-row" style="margin-bottom:8px;">
-          ${DAYS.map(d=>`<button class="day-chip-lg ${m.selDays.includes(d)?'on':''}" data-action="bulkDayToggle" data-day="${d}">${DAY_SHORT[d]}</button>`).join("")}
+          ${DAYS.map(d=>`<button class="day-chip-lg ${m.selDays.includes(d)?'on':''}" data-action="bulkDayToggle" data-day="${d}" style="${m.errors&&m.errors.days&&!m.selDays.includes(d)?`border-color:${C.deepRed};`:''}">${DAY_SHORT[d]}</button>`).join("")}
         </div>
         <div class="chip-row">
           <span class="pill" style="cursor:pointer;" data-action="bulkPreset" data-preset="all">All 7 Days</span>
@@ -1536,10 +1540,12 @@ function bulkModalHTML(){
           <span class="pill" style="cursor:pointer;" data-action="bulkPreset" data-preset="weekend">Weekend</span>
           <span class="pill" style="cursor:pointer;" data-action="bulkPreset" data-preset="none">Clear</span>
         </div>
+        ${m.errors&&m.errors.days?`<div style="font-size:11.5px;color:${C.deepRed};font-weight:600;margin-top:6px;">${esc(m.errors.days)}</div>`:""}
       </div>
       <div class="field">
         <div class="field-label">Task Name</div>
-        <input class="input" id="bm-name" value="${esc(m.name)}" placeholder="e.g. Tea Time ☕" oninput="bulkModal.name=this.value">
+        <input class="input" id="bm-name" value="${esc(m.name)}" placeholder="e.g. Tea Time ☕" oninput="bulkModal.name=this.value; if(bulkModal.errors&&bulkModal.errors.name){delete bulkModal.errors.name; renderModals();}" style="${m.errors&&m.errors.name?`border-color:${C.deepRed};background:#FDEDEC;`:''}">
+        ${m.errors&&m.errors.name?`<div style="font-size:11.5px;color:${C.deepRed};font-weight:600;margin-top:4px;">${esc(m.errors.name)}</div>`:""}
       </div>
       <div class="row-2">
         <div><div class="field-label">Start</div><input type="time" class="input" value="${m.start}" oninput="bulkModal.start=this.value; updateBulkHint();"></div>
@@ -1577,8 +1583,22 @@ function applyBulkModal(){
   const m=bulkModal;
   const nameEl=document.getElementById("bm-name");
   if(nameEl) m.name=nameEl.value.trim();
-  if(!m.name || m.selDays.length===0) return;
-  if(m.scope==='range' && m.rangeStart>m.rangeEnd) return;
+
+  // FIX: previously, if the name or day-selection was missing, this function
+  // just returned — the button appeared to do nothing and nothing showed up
+  // in the Timetable, with zero feedback about why. Now we surface exactly
+  // what's missing right on the form.
+  const errors={};
+  if(!m.name) errors.name="Give this task a name first.";
+  if(m.selDays.length===0) errors.days="Pick at least one day to apply this to.";
+  if(m.scope==='range' && m.rangeStart>m.rangeEnd) errors.range="The end date needs to be on or after the start date.";
+  if(Object.keys(errors).length>0){
+    m.errors=errors;
+    renderModals();
+    return;
+  }
+  m.errors={};
+
   bulkApply({
     name:m.name, start:m.start, end:m.end, category:m.category, priority:m.priority,
     selDays:m.selDays, dateRange: m.scope==='range' ? {start:m.rangeStart,end:m.rangeEnd} : null,
