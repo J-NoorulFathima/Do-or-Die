@@ -231,15 +231,6 @@ const MOTIVATION = [
 ];
 
 /* ============================= date utils ============================= */
-/* FIX: toISO previously did `new Date(d).toISOString().slice(0,10)` after
-   zeroing the LOCAL time to midnight. toISOString() always converts to UTC,
-   so for any timezone ahead of UTC (e.g. India, UTC+5:30) local midnight
-   becomes the PREVIOUS day in UTC — every "today" date string, the default
-   Timetable active date, and all date-range comparisons were silently off
-   by one day. That's why newly scheduled tasks (via Bulk Schedule or Add
-   Task) looked like they "weren't reflecting" in the Timetable: the app was
-   defaulting to yesterday's weekday, not today's. Fixed to build the ISO
-   string from local date parts directly, with no UTC conversion. */
 function toISO(d){
   const x=new Date(d);
   const y=x.getFullYear();
@@ -486,17 +477,46 @@ function ghStatusHTML(){
   return `<span style="color:${C.textSec};">Not synced yet.</span>`;
 }
 
+/* FIX (409 "sha does not match" loop):
+   The previous implementation cached the file's `sha` in ui.github.sha
+   after a push, and only re-fetched it from GitHub if that cached value
+   was completely empty:
+
+       let sha=cfg.sha;
+       if(!sha){ ...fetch... }
+
+   Once a sha was cached, it was trusted forever. But the sha goes stale
+   the instant the file changes by ANY other means — editing the file
+   directly on GitHub, pushing from a different browser/device, or even
+   a file that already existed before the app ever pushed to it (as in
+   the screenshot: the repo file's real sha never matched what the app
+   had cached, so it 409'd on every single attempt with no way to recover
+   short of clearing storage).
+
+   Fix: always fetch the current sha immediately before every push, and
+   if a 409 still occurs (e.g. a genuine race with another push), refetch
+   once more and retry a single time before surfacing an error. */
 async function pushToGithub(){
   const cfg=ui.github;
   if(!ghConfigReady()){ setGithubStatus("error","Add a token, owner and repo first."); return; }
   setGithubStatus("syncing","Pushing to GitHub…");
   try{
-    let sha=cfg.sha;
-    if(!sha){
-      const existing=await githubFetchFile(cfg);
-      if(existing.exists) sha=existing.sha;
+    let sha=null;
+    const existing=await githubFetchFile(cfg);
+    if(existing.exists) sha=existing.sha;
+
+    let result;
+    try{
+      result=await githubPutFile(cfg, JSON.stringify(state,null,2), sha, "DO OR DIE: sync progress");
+    }catch(err){
+      if(String(err.message||"").includes("409")){
+        const retryExisting=await githubFetchFile(cfg);
+        const retrySha=retryExisting.exists?retryExisting.sha:null;
+        result=await githubPutFile(cfg, JSON.stringify(state,null,2), retrySha, "DO OR DIE: sync progress");
+      } else {
+        throw err;
+      }
     }
-    const result=await githubPutFile(cfg, JSON.stringify(state,null,2), sha, "DO OR DIE: sync progress");
     cfg.sha=result.content.sha;
     cfg.lastSyncedAt=Date.now();
     setGithubStatus("synced","Pushed to GitHub");
@@ -1637,12 +1657,6 @@ function applyBulkModal(){
     ui.ttActiveDate = toISO(d);
   }
 
-  // FIX: closeModals() previously ran before commit()/the view jump, and it
-  // only re-renders the modal layer (renderModals()), not the full page.
-  // The subsequent commit() + manual render() at the end already redraw the
-  // whole app correctly, so we just need closeModals() to run after all
-  // state (including ui.view/ui.ttActiveDate) is finalized, and let the
-  // final render() below do the one full repaint.
   closeModals();
   commit();
   render();
