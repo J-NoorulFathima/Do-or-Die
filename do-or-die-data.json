@@ -2,45 +2,6 @@
   "days": {
     "sun": [
       {
-        "id": "hsptk365obk4",
-        "groupId": null,
-        "start": "01:00",
-        "end": "04:00",
-        "name": "Work",
-        "category": "Work",
-        "priority": "medium",
-        "notes": "",
-        "flexible": false,
-        "dateRange": null,
-        "completedDates": []
-      },
-      {
-        "id": "7zg5sru4obk4",
-        "groupId": null,
-        "start": "04:00",
-        "end": "05:00",
-        "name": "YouTube",
-        "category": "Personal",
-        "priority": "low",
-        "notes": "",
-        "flexible": false,
-        "dateRange": null,
-        "completedDates": []
-      },
-      {
-        "id": "0bbbaev0obk4",
-        "groupId": null,
-        "start": "05:00",
-        "end": "06:00",
-        "name": "Morning Routine",
-        "category": "Personal",
-        "priority": "low",
-        "notes": "",
-        "flexible": true,
-        "dateRange": null,
-        "completedDates": []
-      },
-      {
         "id": "120z20vlobk4",
         "groupId": null,
         "start": "06:00",
@@ -1391,5 +1352,78 @@
     "resumeApplications": 0,
     "interviewCalls": 0
   },
-  "roadmapProgress": {}
+  "roadmap": [
+    {
+      "id": "7gihopfrps5l",
+      "month": "August",
+      "year": 2026,
+      "monthIndex": 7,
+      "weekday": "DSA Foundations",
+      "weekend": "Core Java + SQL",
+      "progress": 0
+    },
+    {
+      "id": "o2fy2so9ps5l",
+      "month": "September",
+      "year": 2026,
+      "monthIndex": 8,
+      "weekday": "—",
+      "weekend": "Spring Boot",
+      "progress": 0
+    },
+    {
+      "id": "enrreughps5l",
+      "month": "October",
+      "year": 2026,
+      "monthIndex": 9,
+      "weekday": "Linux",
+      "weekend": "Spring Boot",
+      "progress": 0
+    },
+    {
+      "id": "vdp6c57aps5l",
+      "month": "November",
+      "year": 2026,
+      "monthIndex": 10,
+      "weekday": "AWS",
+      "weekend": "Aptitude",
+      "progress": 0
+    },
+    {
+      "id": "pgt3p5cxps5l",
+      "month": "December",
+      "year": 2026,
+      "monthIndex": 11,
+      "weekday": "DevOps",
+      "weekend": "Aptitude",
+      "progress": 0
+    },
+    {
+      "id": "xxzngwu3ps5l",
+      "month": "January",
+      "year": 2027,
+      "monthIndex": 0,
+      "weekday": "React",
+      "weekend": "Generative AI",
+      "progress": 0
+    },
+    {
+      "id": "48wuaf5hps5l",
+      "month": "February",
+      "year": 2027,
+      "monthIndex": 1,
+      "weekday": "System Design",
+      "weekend": "Mock Interviews",
+      "progress": 0
+    },
+    {
+      "id": "flq10048ps5l",
+      "month": "March",
+      "year": 2027,
+      "monthIndex": 2,
+      "weekday": "Interview Prep",
+      "weekend": "Placement Drives",
+      "progress": 0
+    }
+  ]
 }
